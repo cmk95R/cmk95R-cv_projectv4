@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
@@ -50,4 +50,29 @@ export const me = async (req, res) => {
 
 export const logout = (req, res) => {
   res.status(204).json({ ok: true });
+};
+
+export const listUsers = async (req, res, next) => {
+  try {
+    const users = await User.find().select("_id nombre apellido email rol createdAt");
+    res.json({ users });
+  } catch (e) { next(e); }
+};
+
+export const makeAdmin = async (req, res, next) => {
+  try {
+    const u = await User.findByIdAndUpdate(req.params.id, { rol: "admin" }, { new: true })
+      .select("_id nombre apellido email rol");
+    if (!u) return res.status(404).json({ message: "Usuario no encontrado" });
+    res.json({ message: "Rol actualizado a admin", user: u });
+  } catch (e) { next(e); }
+};
+
+export const revokeAdmin = async (req, res, next) => {
+  try {
+    const u = await User.findByIdAndUpdate(req.params.id, { rol: "user" }, { new: true })
+      .select("_id nombre apellido email rol");
+    if (!u) return res.status(404).json({ message: "Usuario no encontrado" });
+    res.json({ message: "Rol revertido a user", user: u });
+  } catch (e) { next(e); }
 };

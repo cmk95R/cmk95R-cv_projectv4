@@ -137,7 +137,7 @@ export default function DashboardLayout() {
         ]
       : []),
     // solo admin
-    ...(isAdmin ? [{ text: "Panel de Admin", icon: <PeopleIcon />, path: "/admin/users" }] : []),
+    ...(isAdmin ? [{ text: "Panel de Usuarios", icon: <PeopleIcon />, path: "/admin/users" }] : []),
   ];
 
   return (

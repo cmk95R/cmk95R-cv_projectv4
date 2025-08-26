@@ -6,7 +6,7 @@ import connectDB from "./db/db.js";
 
 // rutas
 import authRoutes from "./routes/authRoutes.js";
-
+import userRoutes from "./routes/userRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -28,6 +28,7 @@ app.get("/health", (_req, res) => {
 
 /* ========== Rutas API ========== */
 app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
 
 /* ========== 404 & Error handler ========== */
 app.use((req, res) => {
