@@ -37,3 +37,11 @@ export const getCV = async (req, res, next) => {
     next(err);
   }
 };
+// 👇 NUEVO: GET /cv/me
+export const getMyCV = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const cv = await CV.findOne({ user: userId }).populate("user", "email nombre apellido rol");
+    res.json({ cv }); // si no existe, cv = null (200 OK)
+  } catch (err) { next(err); }
+};

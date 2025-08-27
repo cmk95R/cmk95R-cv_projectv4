@@ -6,6 +6,7 @@ import DashboardLayout from './components/DashboardLayout';
 import CVForm from './pages/CVForm' 
 import AdminUsersGrid from './pages/AdminUserGrid'; 
 import AdminCandidateGrid from './pages/AdminCandidateGrid';
+import Profile from './pages/profile';
 // ...
 <Route path="/admin/users" element={<AdminUsersGrid />} />
 function App() {
@@ -18,7 +19,9 @@ function App() {
         <Route path="/CVForm" element={<CVForm />} />
         <Route path="/admin/users" element={<AdminUsersGrid />} />
         <Route path="admin/candidates" element={<AdminCandidateGrid />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/login" element={<Login />} />
+        
       </Route>
 
       {/* Sin layout (login aparte) */}

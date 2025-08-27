@@ -20,7 +20,8 @@ import {
   Autocomplete,
 } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { useNavigate } from "react-router-dom";
+import { useRef, useEffect } from "react";
 
 // NUEVO: habilidades por rol/área
 const opcionesPorRol = {
@@ -75,6 +76,10 @@ const listStagger = { hidden: {}, visible: { transition: { staggerChildren: 0.05
 const itemVariant = { hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
 
 export default function CVForm() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const redirectTimer = useRef(null);
+
   // NUEVO: rol/área seleccionado para filtrar habilidades
   const [rolSeleccionado, setRolSeleccionado] = useState("Desarrollo");
 
@@ -137,12 +142,14 @@ export default function CVForm() {
 
  const handleSubmit = async (e) => {
   e.preventDefault();
+  
   if (!requiredOk) {
     setSnack({ open: true, msg: "Completá los campos obligatorios (*)", severity: "warning" });
     return;
   }
 
   try {
+    setLoading(true);
     const payload = {
       // Datos personales
       nombre: formData.nombre,
@@ -180,15 +187,22 @@ export default function CVForm() {
       disponibilidad: formData.disponibilidad,
     };
 
-    await upsertMyCvJson(payload);
-    setSnack({ open: true, msg: "¡CV enviado con éxito! 🎉", severity: "success" });
+   await upsertMyCvJson(payload);
+
+    setSnack({ open: true, msg: "¡Gracias por cargar tu CV! 🎉", severity: "success" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    redirectTimer.current = setTimeout(() => {
+      navigate("/", { replace: true });
+    }, 2000);
   } catch (err) {
-    console.error(err);
     setSnack({
       open: true,
-      msg: err?.response?.data?.message || "Error al enviar el CV",
+      msg: err?.response?.data?.message || "Error al enviar tu CV",
       severity: "error",
     });
+  } finally {
+    setLoading(false);
   }
 };
 
