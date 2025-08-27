@@ -14,6 +14,7 @@ const fmtDate = (v) => {
 };
 
 export default function AdminCandidatesGrid() {
+    
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [snack, setSnack] = React.useState({ open: false, severity: "success", msg: "" });
@@ -210,7 +211,7 @@ export default function AdminCandidatesGrid() {
             sx={{ minWidth: 260, flexGrow: 1 }}
           />
 
-          <Button variant="outlined" onClick={fetchCandidates}>Refrescar</Button>
+          <Button variant="outlined" onClick={fetchCandidates}>Actualizar</Button>
         </Stack>
       </Paper>
 
