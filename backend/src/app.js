@@ -7,6 +7,7 @@ import connectDB from "./db/db.js";
 // rutas
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import cvRoutes from "./routes/cvRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -29,8 +30,10 @@ app.get("/health", (_req, res) => {
 /* ========== Rutas API ========== */
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
-
+app.use("/cv", cvRoutes);
 /* ========== 404 & Error handler ========== */
+app.use(express.json()); // 👈 importante
+
 app.use((req, res) => {
   res.status(404).json({ message: "Ruta no encontrada" });
 });

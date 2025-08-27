@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { upsertMyCvJson } from "../api/cv"; // ajusta la ruta si es distinta
 import {
   Box,
   Container,
@@ -134,16 +135,62 @@ export default function CVForm() {
     if (file) setFormData((prev) => ({ ...prev, cv: file }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!requiredOk) {
-      setSnack({ open: true, msg: "Completá los campos obligatorios (*)", severity: "warning" });
-      return;
-    }
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!requiredOk) {
+    setSnack({ open: true, msg: "Completá los campos obligatorios (*)", severity: "warning" });
+    return;
+  }
 
-    console.log("Formulario enviado:", formData);
+  try {
+    const payload = {
+      // Datos personales
+      nombre: formData.nombre,
+      nacimiento: formData.nacimiento, // "YYYY-MM-DD"
+      ciudad: formData.ciudad,
+      provincia: formData.provincia,
+      pais: formData.pais,
+      email: formData.email,
+      telefono: formData.telefono,
+
+      // Área / rol + habilidades
+      areaRol: rolSeleccionado,
+      habilidades: formData.habilidades,        // array (máx 5)
+      otraHabilidad: formData.otraHabilidad,
+
+      // Blandas
+      competencias: formData.competencias,      // array (máx 5)
+
+      // Perfil / redes
+      perfil: formData.perfil,
+      salario: formData.salario,
+      linkedin: formData.linkedin,
+      repositorio: formData.repositorio,
+
+      // Educación / idiomas / situación
+      nivelAcademico: formData.nivelAcademico,
+      carreraIT: formData.carreraIT,            // "SI" | "NO" | ""
+      nivelIngles: formData.nivelIngles,
+      certIngles: formData.certIngles,          // "SI" | "NO" | ""
+      detalleCertIngles: formData.detalleCertIngles,
+      ambitoLaboral: formData.ambitoLaboral,
+      otraSituacion: formData.otraSituacion,
+      relacionIT: formData.relacionIT,          // "SI" | "NO" | ""
+      aniosIT: formData.aniosIT,
+      disponibilidad: formData.disponibilidad,
+    };
+
+    await upsertMyCvJson(payload);
     setSnack({ open: true, msg: "¡CV enviado con éxito! 🎉", severity: "success" });
-  };
+  } catch (err) {
+    console.error(err);
+    setSnack({
+      open: true,
+      msg: err?.response?.data?.message || "Error al enviar el CV",
+      severity: "error",
+    });
+  }
+};
 
   const isOtroHabilidad = formData.habilidades.includes("Otro");
 
