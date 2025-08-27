@@ -5,6 +5,7 @@ import Register from './pages/Register';
 import DashboardLayout from './components/DashboardLayout';
 import CVForm from './pages/CVForm' 
 import AdminUsersGrid from './pages/AdminUserGrid'; 
+import AdminCandidateGrid from './pages/AdminCandidateGrid';
 // ...
 <Route path="/admin/users" element={<AdminUsersGrid />} />
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/CVForm" element={<CVForm />} />
         <Route path="/admin/users" element={<AdminUsersGrid />} />
+        <Route path="admin/candidates" element={<AdminCandidateGrid />} />
         <Route path="/login" element={<Login />} />
       </Route>
 

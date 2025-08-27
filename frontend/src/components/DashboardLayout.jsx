@@ -32,6 +32,7 @@ import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import PeopleIcon from "@mui/icons-material/PeopleAlt"; // reemplazo de SupervisedUserCircleTwoTone
 import PersonIcon from "@mui/icons-material/Person";
 import WorkIcon from "@mui/icons-material/Work";
+import LogoutIcon from "@mui/icons-material/Logout";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
@@ -119,26 +120,36 @@ export default function DashboardLayout() {
   const isAdmin = user?.rol === "admin";
 
   // Menú lateral condicionado por sesión/rol
-  const menuItems = [
-    { text: "Inicio", icon: <HomeIcon />, path: "/" },
-    // visibles solo logueados
-    ...(user
-      ? [
-          { text: "Cargar CV", icon: <UploadFileIcon />, path: "/CVForm" },
-          { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
-          { text: "Búsquedas activas", icon: <WorkIcon />, path: "/searches" },
-        ]
-      : []),
-    // visibles solo NO logueados
-    ...(!user
-      ? [
-          { text: "Iniciar Sesión", icon: <LoginIcon />, path: "/login" },
-          { text: "Crear Cuenta", icon: <PersonAddIcon />, path: "/register" },
-        ]
-      : []),
-    // solo admin
-    ...(isAdmin ? [{ text: "Panel de Usuarios", icon: <PeopleIcon />, path: "/admin/users" }] : []),
-  ];
+const menuItems = [
+  { text: "Inicio", icon: <HomeIcon />, path: "/" },
+
+  // visibles solo logueados
+  ...(user
+    ? [
+        { text: "Cargar CV", icon: <UploadFileIcon />, path: "/CVForm" },
+        { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
+        { text: "Búsquedas activas", icon: <WorkIcon />, path: "/searches" },
+        // Mejor manejar logout con action (no path)
+        { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
+      ]
+    : []),
+
+  // visibles solo NO logueados
+  ...(!user
+    ? [
+        { text: "Iniciar Sesión", icon: <LoginIcon />, path: "/login" },
+        { text: "Crear Cuenta", icon: <PersonAddIcon />, path: "/register" },
+      ]
+    : []),
+
+  // solo admin (ambos ítems en el mismo spread)
+  ...(isAdmin
+    ? [
+        { text: "Panel de Usuarios", icon: <PeopleIcon />, path: "/admin/users" },
+        { text: "Panel de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },
+      ]
+    : []),
+];
 
   return (
     <Box sx={{ display: "flex" }}>
