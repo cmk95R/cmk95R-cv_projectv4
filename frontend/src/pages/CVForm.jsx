@@ -215,7 +215,7 @@ export default function CVForm() {
           {/* Header */}
           <motion.div variants={sectionVariants}>
             <Typography variant="h4" fontWeight={700} gutterBottom>
-              Dejá tu CV
+              Mi CV
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
               Unite a nuestra plataforma de reclutamiento y sé parte de la vanguardia que construye el futuro tecnológico.

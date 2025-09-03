@@ -6,27 +6,37 @@ import {
 } from "@mui/material";
 import { profileApi } from "../api/auth";
 import { getMyCvApi, upsertMyCvJson } from "../api/cv";
+import { motion } from "framer-motion";
 
-const NIVELES_ACAD = [
+
+
+
+
+const opcionesPorRol = [
+    "Administracion",
+    "Recursos Humanos",
+    "Sistemas",
+    "Pasantia"
+];
+const nivelesAcademicos = [
     "Secundario completo", "Secundario incompleto", "Terciario/Técnico en curso",
     "Terciario/Técnico completo", "Universitario en curso", "Universitario completo",
     "Posgrado en curso", "Posgrado completo",
 ];
-const NIVELES_INGLES = ["Sin conocimientos", "Nivel básico", "Nivel intermedio", "Nivel avanzado"];
-const AMBITOS = ["Freelancer", "Soy estudiante y trabajo", "Soy estudiante", "Pasante", "Otro"];
-const DISPONIBILIDAD = ["Full-time", "Part-time", "Freelance"];
-const AREAS = ["Desarrollo", "Administrativo", "Recursos Humanos", "Soporte Técnico", "Ciberseguridad"];
-
 export default function Profile() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [editable, setEditable] = useState(false);
-
+    const [rolSeleccionado, setRolSeleccionado] = useState("Desarrollo");
     const [user, setUser] = useState(null);  // /auth/profile
     const [cv, setCv] = useState(null);  // /cv/me
 
     const [snack, setSnack] = useState({ open: false, severity: "success", msg: "" });
-
+    // Animaciones suaves
+    const sectionVariants = {
+        hidden: { opacity: 0, y: 14 },
+        visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.35, ease: "easeOut" } }),
+    };
     const [form, setForm] = useState({
         nombre: "", nacimiento: "", ciudad: "", provincia: "", pais: "",
         email: "", telefono: "",
@@ -42,12 +52,13 @@ export default function Profile() {
 
     const requiredOk = useMemo(() => {
         const r = form;
-        return r.nombre && r.email && r.telefono && r.pais && r.nivelAcademico && r.ambitoLaboral;
+        return r.nombre && r.email;
     }, [form]);
 
     const setFromCv = (cvData, fallbackUser) => {
         setForm({
             nombre: cvData?.nombre ?? fallbackUser?.nombre ?? "",
+            apellido: cvData?.apellido ?? fallbackUser?.apellido ?? "",
             nacimiento: cvData?.nacimiento ? String(cvData.nacimiento).slice(0, 10) : "",
             ciudad: cvData?.ciudad ?? "",
             provincia: cvData?.provincia ?? "",
@@ -97,36 +108,16 @@ export default function Profile() {
 
     useEffect(() => { fetchAll(); /* eslint-disable-next-line */ }, []);
 
+    const handleDrop = (ev) => {
+        ev.preventDefault();
+        const file = ev.dataTransfer.files?.[0];
+        if (file) setForm((prev) => ({ ...prev, cv: file }));
+    };
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm(f => ({ ...f, [name]: value }));
     };
 
-    const handleAddSkill = (e) => {
-        const val = e.target.value;
-        if (!val) return;
-        setForm(f => {
-            if (f.habilidades.includes(val) || f.habilidades.length >= 5) return f;
-            return { ...f, habilidades: [...f.habilidades, val] };
-        });
-    };
-
-    const handleRemoveSkill = (val) => {
-        setForm(f => ({ ...f, habilidades: f.habilidades.filter(s => s !== val) }));
-    };
-
-    const handleAddSoft = (e) => {
-        const val = e.target.value;
-        if (!val) return;
-        setForm(f => {
-            if (f.competencias.includes(val) || f.competencias.length >= 5) return f;
-            return { ...f, competencias: [...f.competencias, val] };
-        });
-    };
-
-    const handleRemoveSoft = (val) => {
-        setForm(f => ({ ...f, competencias: f.competencias.filter(s => s !== val) }));
-    };
 
     const handleSave = async () => {
         if (!requiredOk) {
@@ -178,13 +169,11 @@ export default function Profile() {
                         </Typography>
                         <Grid container spacing={2}>
                             {[
-                                { name: "nombre", label: "Nombre completo *" },
-                                { name: "nacimiento", label: "Fecha de nacimiento", type: "date", InputLabelProps: { shrink: true } },
-                                { name: "ciudad", label: "Ciudad" },
-                                { name: "provincia", label: "Provincia/Estado" },
-                                { name: "pais", label: "País de residencia *" },
+
+                                { name: "nombre", label: "Nombre *" },
+                                { name: "apellido", label: "Apellido *" },
                                 { name: "email", label: "Correo electrónico *" },
-                                { name: "telefono", label: "Teléfono *" },
+
                             ].map(f => (
                                 <Grid key={f.name} item xs={12} sm={6}>
                                     <TextField
@@ -203,207 +192,16 @@ export default function Profile() {
 
                         <Divider sx={{ my: 3 }} />
 
-                        {/* Área y habilidades */}
-                        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
-                            Área / Rol
-                        </Typography>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    select fullWidth label="Área/Rol"
-                                    name="areaRol" value={form.areaRol} onChange={handleChange}
-                                    disabled={!editable}
-                                >
-                                    {AREAS.map(a => <MenuItem key={a} value={a}>{a}</MenuItem>)}
-                                </TextField>
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    select fullWidth label="Agregar habilidad (máx. 5)"
-                                    value=""
-                                    disabled={!editable || (form.habilidades?.length || 0) >= 5}
-                                    onChange={handleAddSkill}
-                                >
-                                    {["React", "Node.js", "Python", "Docker", "Kubernetes", "Excel/Sheets", "AD/Azure AD", "SIEM", "Otro"].map(opt =>
-                                        <MenuItem key={opt} value={opt}>{opt}</MenuItem>
-                                    )}
-                                </TextField>
-                            </Grid>
-
-                            <Grid item xs={12}>
-                                <Stack direction="row" spacing={1} flexWrap="wrap">
-                                    {(form.habilidades || []).map(h => (
-                                        <Chip
-                                            key={h}
-                                            label={h}
-                                            onDelete={editable ? () => handleRemoveSkill(h) : undefined}
-                                            variant="outlined"
-                                            color="primary"
-                                            sx={{ mb: 1 }}
-                                        />
-                                    ))}
-                                </Stack>
-                                {form.habilidades?.includes("Otro") && (
-                                    <TextField
-                                        fullWidth label="Especificá otra habilidad"
-                                        name="otraHabilidad" value={form.otraHabilidad} onChange={handleChange}
-                                        sx={{ mt: 1 }} disabled={!editable}
-                                    />
-                                )}
-                            </Grid>
-                        </Grid>
-
-                        <Divider sx={{ my: 3 }} />
-
-                        {/* Competencias blandas */}
-                        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
-                            Habilidades blandas
-                        </Typography>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    select fullWidth label="Agregar competencia (máx. 5)"
-                                    value=""
-                                    disabled={!editable || (form.competencias?.length || 0) >= 5}
-                                    onChange={handleAddSoft}
-                                >
-                                    {["Comunicación efectiva", "Trabajo en equipo", "Empatía", "Proactividad", "Resolución de conflictos", "Adaptabilidad", "Liderazgo"].map(opt =>
-                                        <MenuItem key={opt} value={opt}>{opt}</MenuItem>
-                                    )}
-                                </TextField>
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Stack direction="row" spacing={1} flexWrap="wrap">
-                                    {(form.competencias || []).map(s => (
-                                        <Chip
-                                            key={s}
-                                            label={s}
-                                            onDelete={editable ? () => handleRemoveSoft(s) : undefined}
-                                            sx={{ mb: 1 }}
-                                        />
-                                    ))}
-                                </Stack>
-                            </Grid>
-                        </Grid>
-
-                        <Divider sx={{ my: 3 }} />
-
-                        {/* Educación / Idiomas / Laboral */}
-                        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
-                            Educación, Idiomas y Situación
-                        </Typography>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    select fullWidth required label="Nivel académico"
-                                    name="nivelAcademico" value={form.nivelAcademico} onChange={handleChange}
-                                    disabled={!editable}
-                                >
-                                    {NIVELES_ACAD.map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
-                                </TextField>
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    select fullWidth label="Nivel de inglés"
-                                    name="nivelIngles" value={form.nivelIngles} onChange={handleChange}
-                                    disabled={!editable}
-                                >
-                                    {NIVELES_INGLES.map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
-                                </TextField>
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    select fullWidth label="Certificación en inglés"
-                                    name="certIngles" value={form.certIngles} onChange={handleChange}
-                                    disabled={!editable}
-                                >
-                                    {["SI", "NO", ""].map(v => <MenuItem key={v} value={v}>{v || "—"}</MenuItem>)}
-                                </TextField>
-                            </Grid>
-
-                            {form.certIngles === "SI" && (
-                                <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth label="Detalle certificación (TOEFL/IELTS/CEFR)"
-                                        name="detalleCertIngles" value={form.detalleCertIngles} onChange={handleChange}
-                                        disabled={!editable}
-                                    />
-                                </Grid>
-                            )}
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    select fullWidth required label="Situación laboral actual"
-                                    name="ambitoLaboral" value={form.ambitoLaboral} onChange={handleChange}
-                                    disabled={!editable}
-                                >
-                                    {AMBITOS.map(a => <MenuItem key={a} value={a}>{a}</MenuItem>)}
-                                </TextField>
-                            </Grid>
-
-                            {form.ambitoLaboral === "Otro" && (
-                                <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth label="Otra situación"
-                                        name="otraSituacion" value={form.otraSituacion} onChange={handleChange}
-                                        disabled={!editable}
-                                    />
-                                </Grid>
-                            )}
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    select fullWidth label="¿Tu empleo tiene relación con IT?"
-                                    name="relacionIT" value={form.relacionIT} onChange={handleChange}
-                                    disabled={!editable}
-                                >
-                                    {["SI", "NO", ""].map(v => <MenuItem key={v} value={v}>{v || "—"}</MenuItem>)}
-                                </TextField>
-                            </Grid>
-
-                            {form.relacionIT === "SI" && (
-                                <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth type="number" label="Años de experiencia en IT"
-                                        name="aniosIT" value={form.aniosIT} onChange={handleChange}
-                                        inputProps={{ min: 0, max: 50 }}
-                                        disabled={!editable}
-                                    />
-                                </Grid>
-                            )}
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    select fullWidth label="Disponibilidad"
-                                    name="disponibilidad" value={form.disponibilidad} onChange={handleChange}
-                                    disabled={!editable}
-                                >
-                                    {DISPONIBILIDAD.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
-                                </TextField>
-                            </Grid>
-                        </Grid>
-
-                        <Divider sx={{ my: 3 }} />
 
                         {/* Perfil / redes */}
                         <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
-                            Perfil y redes
+                            Completa tu perfil
                         </Typography>
                         <Grid container spacing={2}>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth multiline minRows={3}
-                                    label="Perfil profesional"
-                                    name="perfil" value={form.perfil} onChange={handleChange}
-                                    disabled={!editable}
-                                />
-                            </Grid>
                             <Grid item xs={12} sm={6}>
-                                <TextField fullWidth label="Expectativa salarial"
-                                    name="salario" value={form.salario} onChange={handleChange}
+                                <TextField fullWidth label="Telefono"
+                                    type="tel"
+                                    name="telefono" value={form.telefono} onChange={handleChange}
                                     disabled={!editable}
                                 />
                             </Grid>
@@ -413,13 +211,126 @@ export default function Profile() {
                                     disabled={!editable}
                                 />
                             </Grid>
-                            <Grid item xs={12}>
-                                <TextField fullWidth label="GitHub / GitLab / Otro"
-                                    name="repositorio" value={form.repositorio} onChange={handleChange}
+                            <TextField
+                                label="Fecha de nacimiento"
+                                type="date"
+                                name="nacimiento"
+                                value={form.nacimiento}
+                                onChange={handleChange}
+                                InputLabelProps={{ shrink: true }}
+                                fullWidth
+                            />
+                        </Grid>
+                        <Divider sx={{ my: 3 }} />
+
+                        {/* Perfil / redes */}
+                        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
+                            Perfil y Redes
+                        </Typography>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6}>
+                                <TextField fullWidth label="LinkedIn"
+                                    name="linkedin" value={form.linkedin} onChange={handleChange}
                                     disabled={!editable}
                                 />
                             </Grid>
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Area de Interes"
+                                    name="perfil" value={form.perfil} onChange={handleChange}
+                                    disabled={!editable}
+                                />
+                            </Grid>
+
+
                         </Grid>
+
+                        <Divider sx={{ my: 3 }} />
+
+                        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
+                            Area de Interes
+                        </Typography>
+                        {/* Select de rol */}
+                        <TextField
+                            select
+                            fullWidth
+                            label="Seleccioná el área de tu interés"
+                            value={rolSeleccionado || ""}               // evitar warning controlled/uncontrolled
+                            onChange={(e) => setRolSeleccionado(e.target.value)}
+                        >
+                            {opcionesPorRol.map((rol) => (
+                                <MenuItem key={rol} value={rol}>
+                                    {rol}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                        <Divider sx={{ my: 3 }} />
+
+                        {/* === Educación  === */}
+                        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
+                            Educacion <Typography component="span" variant="body2" color="text.secondary">    </Typography>
+                        </Typography>
+
+                        {/* Nivel académico */}
+                        <Grid item xs={12} sm={6} component={motion.div} >
+                            <TextField
+                                select
+                                fullWidth
+                                required
+                                label="Nivel académico"
+                                name="nivelAcademico"
+                                value={form.nivelAcademico}
+                                onChange={handleChange}
+                                helperText="Seleccioná tu máximo nivel educativo"
+                            >
+                                {nivelesAcademicos.map((nivel) => (
+                                    <MenuItem key={nivel} value={nivel}>{nivel}</MenuItem>
+                                ))}
+                            </TextField>
+                        </Grid>
+                        <Divider sx={{ my: 3 }} />
+                        {/* === Experiencia  === */}
+
+                        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
+                            Experiencia Laboral <Typography component="span" variant="body2" color="text.secondary">    </Typography>
+                        </Typography>
+                         <Divider sx={{ my: 3 }} />        
+                        {/* Subir CV con drag & drop */}
+                        <motion.div variants={sectionVariants}>
+                            <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
+                                CV (PDF/DOC) *
+                            </Typography>
+                        </motion.div>
+
+                        <Paper
+                            variant="outlined"
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={handleDrop}
+                            sx={{
+                                p: 2,
+                                mb: 2,
+                                borderStyle: "dashed",
+                                borderRadius: 2,
+                                textAlign: "center",
+                                transition: "all .2s",
+                                "&:hover": { boxShadow: 3, borderColor: "primary.main" },
+                            }}
+                        >
+                            <Typography variant="body2" sx={{ mb: 1 }}>
+                                Arrastrá tu archivo aquí o usá el botón.
+                            </Typography>
+                            <Button variant="contained" component="label">
+                                Seleccionar archivo
+                                <input type="file" hidden name="cv" onChange={handleChange} accept=".pdf,.doc,.docx" />
+                            </Button>
+                            {form.cv && (
+                                <Typography variant="body2" sx={{ mt: 1 }}>
+                                    Archivo seleccionado: <Chip label={form.cv.name} size="small" />
+                                </Typography>
+                            )}
+                        </Paper>
+
 
                         {/* Acciones */}
                         <Stack direction="row" justifyContent="flex-end" spacing={2} sx={{ mt: 3 }}>

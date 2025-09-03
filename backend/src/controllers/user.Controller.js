@@ -7,7 +7,7 @@ const signToken = (payload) =>
 
 export const register = async (req, res, next) => {
   try {
-    const { nombre, email, password, rol } = req.body;
+    const { nombre, email, password,direccion , rol } = req.body;
 
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ message: "El email ya está registrado" });
@@ -17,7 +17,7 @@ export const register = async (req, res, next) => {
     // seguridad: impedir crear admin desde endpoint público
     const safeRole = rol === "admin" ? "user" : (rol || "user");
 
-    const user = await User.create({ nombre, email, password: hash, rol: safeRole });
+    const user = await User.create({ id,nombre, email,direccion, password: hash, rol: safeRole });
     const token = signToken({ id: user._id, rol: user.rol });
 
     res.status(201).json({
@@ -44,7 +44,7 @@ export const login = async (req, res, next) => {
 };
 
 export const me = async (req, res) => {
-  const { _id, nombre, email, rol } = req.user;
+  const { _id, nombre, email,direccion, rol } = req.user;
   res.json({ user: { id: _id, nombre, email, rol } });
 };
 
@@ -54,7 +54,7 @@ export const logout = (req, res) => {
 
 export const listUsers = async (req, res, next) => {
   try {
-    const users = await User.find().select("_id nombre apellido email rol createdAt");
+    const users = await User.find().select("_id nombre apellido direccion email rol createdAt");
     res.json({ users });
   } catch (e) { next(e); }
 };

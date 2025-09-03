@@ -1,5 +1,4 @@
-import React from "react";
-import { useState, useContext } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerApi } from "../api/auth";
 import { AuthContext } from "../context/AuthContext";
@@ -14,20 +13,32 @@ import {
   Container,
   Typography,
   Paper,
+  Divider,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import SocialLogin from "../components/SocialLogin"; // 👈 ojo al nombre/case
 
 export default function RegisterForm() {
   const navigate = useNavigate();
   const { setUser } = useContext(AuthContext);
-  const [form, setForm] = useState({ nombre: "", email: "", password: "" });
-  const [loading, setLoading] = useState(false);
 
-  // handler robusto: acepta e.target.value o un objeto { target:{ name, value } }
+  // Asegurate de incluir TODOS los campos que enviás al backend
+  const [form, setForm] = useState({
+    nombre: "",
+    apellido: "",
+    email: "",
+    password: "",
+    direccion: "",
+    remember: false,
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
   const handleSubmit = async (e) => {
@@ -39,12 +50,11 @@ export default function RegisterForm() {
         apellido: form.apellido,
         email: form.email,
         password: form.password,
-        dni: form.dni,
-        nacimiento: form.nacimiento
+        direccion: form.direccion,
       });
       localStorage.setItem("token", data.token);
       setUser(data.user);
-      navigate("/"); // o /profile
+      navigate("/"); // redirigí a donde prefieras
     } catch (err) {
       alert(err?.response?.data?.message || "No se pudo registrar");
     } finally {
@@ -52,26 +62,21 @@ export default function RegisterForm() {
     }
   };
 
-  const [showPass, setShowPass] = useState(false);
-  const handleClickShowPassword = () => setShowPass(!showPass);
-  const handleMouseDownPassword = () => setShowPass(!showPass);
-
   return (
     <Container maxWidth="sm" sx={{ py: 6 }}>
       <Paper sx={{ p: 4, borderRadius: 3 }} elevation={4}>
-        <form id="register-form" onSubmit={handleSubmit} style={{ width: "100%" }}>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            Bienvenido
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 3 }}>
-            Registrate para ver nuestras ofertas de empleo
-          </Typography>
+        <Typography variant="h4" fontWeight={700} gutterBottom>
+          Bienvenido
+        </Typography>
+        <Typography variant="body1" sx={{ mb: 3 }}>
+          Registrate para ver nuestras ofertas de empleo
+        </Typography>
 
+        <form id="register-form" onSubmit={handleSubmit} style={{ width: "100%" }}>
           <Stack spacing={2}>
-            {/* Nombre */}
             <TextField
               label="Nombre"
-              type="text" 
+              type="text"
               name="nombre"
               value={form.nombre}
               onChange={handleChange}
@@ -79,7 +84,6 @@ export default function RegisterForm() {
               required
             />
 
-            {/* Apellido */}
             <TextField
               label="Apellido"
               type="text"
@@ -89,7 +93,15 @@ export default function RegisterForm() {
               fullWidth
               required
             />
-            {/* Email */}
+            <TextField
+              label="Localiadad"
+              type="text"
+              name="direccion"
+              value={form.direccion}
+              onChange={handleChange}
+              fullWidth
+              required
+            />  
             <TextField
               label="Correo electrónico"
               type="email"
@@ -100,7 +112,6 @@ export default function RegisterForm() {
               required
             />
 
-            {/* Contraseña con toggle */}
             <TextField
               label="Contraseña"
               type={showPass ? "text" : "password"}
@@ -124,62 +135,38 @@ export default function RegisterForm() {
               }}
             />
 
-            {/* DNI: solo números */}
-            <TextField
-              label="DNI"
-              type="text"
-              name="dni"
-              value={form.dni}
-              onChange={(e) => {
-                const onlyNums = e.target.value.replace(/\D/g, "");
-                setForm((prev) => ({ ...prev, dni: onlyNums }));
-              }}
-              inputProps={{ inputMode: "numeric", pattern: "[0-9]*", maxLength: 10 }}
-              fullWidth
-              required
-              helperText="Solo números"
-            />
-
-            {/* Fecha de nacimiento (no futura) */}
-            <TextField
-              label="Fecha de Nacimiento"
-              type="date"
-              name="nacimiento"
-              value={form.nacimiento}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ max: new Date().toISOString().split("T")[0] }}
-              fullWidth
-              required
-            />
-
-            {/* Recordarme */}
             <FormControlLabel
               control={
                 <Checkbox
                   checked={form.remember}
-                  onChange={(e) => setForm((p) => ({ ...p, remember: e.target.checked }))}
+                  onChange={handleChange}
                   name="remember"
                 />
               }
               label="Recordarme"
             />
+
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              disabled={loading}
+              sx={{ mt: 1, py: 1.2, fontWeight: 600 }}
+            >
+              {loading ? "Registrando..." : "Registrar"}
+            </Button>
           </Stack>
-
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            sx={{ mt: 2, py: 1.2, fontWeight: 600 }}
-          >
-            Registrar
-          </Button>
-
-          <Typography align="center" sx={{ mt: 2 }}>
-            ¿Ya tenés una cuenta? <a href="/login">Iniciá sesión</a>
-          </Typography>
         </form>
+
+
+
+        {/* Bloque de login social */}
+        <SocialLogin redirectTo="/" />
+
+        <Typography align="center" sx={{ mt: 2 }}>
+          ¿Ya tenés una cuenta? <a href="/login">Iniciá sesión</a>
+        </Typography>
       </Paper>
     </Container>
   );

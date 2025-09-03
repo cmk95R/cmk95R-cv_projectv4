@@ -37,7 +37,7 @@ export const getCV = async (req, res, next) => {
     next(err);
   }
 };
-// 👇 NUEVO: GET /cv/me
+// NUEVO: GET /cv/me
 export const getMyCV = async (req, res, next) => {
   try {
     const userId = req.user.id;
