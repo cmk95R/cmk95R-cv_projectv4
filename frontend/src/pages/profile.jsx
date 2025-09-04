@@ -8,10 +8,6 @@ import { profileApi } from "../api/auth";
 import { getMyCvApi, upsertMyCvJson } from "../api/cv";
 import { motion } from "framer-motion";
 
-
-
-
-
 const opcionesPorRol = [
     "Administracion",
     "Recursos Humanos",
@@ -295,7 +291,7 @@ export default function Profile() {
                         <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
                             Experiencia Laboral <Typography component="span" variant="body2" color="text.secondary">    </Typography>
                         </Typography>
-                         <Divider sx={{ my: 3 }} />        
+                        <Divider sx={{ my: 3 }} />        
                         {/* Subir CV con drag & drop */}
                         <motion.div variants={sectionVariants}>
                             <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>

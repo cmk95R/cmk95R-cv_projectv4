@@ -124,7 +124,7 @@ const Home = () => {
       <Box
         sx={{
           position: 'relative',
-          height: '65vh',
+          height: '55vh',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',

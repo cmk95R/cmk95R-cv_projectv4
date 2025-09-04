@@ -16,29 +16,9 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 
 const Footer = () => {
   return (
-    <Box component="footer" sx={{ bgcolor: 'primary.dark', color: 'white', mt: 8, pt: 6, pb: 3 }}>
+    <Box component="footer" sx={{ bgcolor: 'primary.dark', color: 'white', mt: 8, pt: 4, pb: 1 } }>
       <Container maxWidth="lg">
-        <Grid container spacing={4}>
-          {/* Columna empresa */}
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="h6" gutterBottom>RRHH</Typography>
-            <Typography variant="body2" color="grey.300">
-              Somos una empresa comprometida con la innovación y el talento. 
-              Nuestro propósito es potenciar el desarrollo de las personas y las organizaciones.
-            </Typography>
-          </Grid>
-
-          {/* Columna navegación */}
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="h6" gutterBottom>Navegación</Typography>
-            <Stack spacing={1}>
-              <Link href="#" color="inherit" underline="hover">Inicio</Link>
-              <Link href="#" color="inherit" underline="hover">Oportunidades</Link>
-              <Link href="#" color="inherit" underline="hover">Cultura</Link>
-              <Link href="#" color="inherit" underline="hover">Beneficios</Link>
-              <Link href="#" color="inherit" underline="hover">Contacto</Link>
-            </Stack>
-          </Grid>
+        <Grid container spacing={4} display={'flex'} justifyContent={'space-between'}>
 
           {/* Columna contacto */}
           <Grid item xs={12} sm={6} md={3}>

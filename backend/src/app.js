@@ -8,7 +8,7 @@ import * as XLSX from "xlsx";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import cvRoutes from "./routes/cvRoutes.js";
-
+import adminSearchesRoutes from "./routes/adminSearches.routes.js";
 dotenv.config();
 const app = express();
 
@@ -31,6 +31,9 @@ app.get("/health", (_req, res) => {
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/cv", cvRoutes);
+app.use("/", adminSearchesRoutes); // expone /admin/searches
+
+
 /* ========== 404 & Error handler ========== */
 app.use(express.json()); // 👈 importante
 

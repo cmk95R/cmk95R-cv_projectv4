@@ -7,6 +7,7 @@ import CVForm from './pages/CVForm'
 import AdminUsersGrid from './pages/AdminUserGrid'; 
 import AdminCandidateGrid from './pages/AdminCandidateGrid';
 import Profile from './pages/profile';
+import AdminSearches from './pages/AdminSearches';
 // ...
 <Route path="/admin/users" element={<AdminUsersGrid />} />
 function App() {
@@ -21,6 +22,7 @@ function App() {
         <Route path="admin/candidates" element={<AdminCandidateGrid />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/login" element={<Login />} />
+        <Route path="admin/searches" element={<AdminSearches />} />
         
       </Route>
 

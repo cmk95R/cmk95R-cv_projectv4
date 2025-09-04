@@ -1,26 +1,14 @@
+// src/layouts/DashboardLayout.jsx
 import * as React from "react";
 import { styled, useTheme } from "@mui/material/styles";
 import {
-  Box,
-  Drawer as MuiDrawer,
-  AppBar as MuiAppBar,
-  Toolbar,
-  List,
-  CssBaseline,
-  Typography,
-  Divider,
-  IconButton,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Stack,
-  Avatar,
-  Tooltip,
-  Menu,
-  MenuItem,
-  Button,
+  Box, Drawer as MuiDrawer, AppBar as MuiAppBar, Toolbar, List, CssBaseline,
+  Typography, Divider, IconButton, ListItem, ListItemButton, ListItemIcon, ListItemText,
+  Stack, Avatar, Tooltip, Menu, MenuItem, Button,
 } from "@mui/material";
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { AuthContext } from "../context/AuthContext";
 
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -29,13 +17,10 @@ import HomeIcon from "@mui/icons-material/Home";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import LoginIcon from "@mui/icons-material/Login";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import PeopleIcon from "@mui/icons-material/PeopleAlt"; // reemplazo de SupervisedUserCircleTwoTone
+import PeopleIcon from "@mui/icons-material/PeopleAlt";
 import PersonIcon from "@mui/icons-material/Person";
 import WorkIcon from "@mui/icons-material/Work";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { Link, Outlet, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { AuthContext } from "../context/AuthContext";
 
 const drawerWidth = 240;
 
@@ -47,7 +32,6 @@ const openedMixin = (theme) => ({
   }),
   overflowX: "hidden",
 });
-
 const closedMixin = (theme) => ({
   transition: theme.transitions.create("width", {
     easing: theme.transitions.easing.sharp,
@@ -59,7 +43,6 @@ const closedMixin = (theme) => ({
     width: `calc(${theme.spacing(8)} + 1px)`,
   },
 });
-
 const DrawerHeader = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
@@ -67,41 +50,39 @@ const DrawerHeader = styled("div")(({ theme }) => ({
   padding: theme.spacing(0, 1),
   ...theme.mixins.toolbar,
 }));
-
-const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== "open",
-})(({ theme, open }) => ({
-  zIndex: theme.zIndex.drawer + 1,
-  transition: theme.transitions.create(["width", "margin"], {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  ...(open && {
-    marginLeft: drawerWidth,
-    width: `calc(100% - ${drawerWidth}px)`,
+const AppBar = styled(MuiAppBar, { shouldForwardProp: (prop) => prop !== "open" })(
+  ({ theme, open }) => ({
+    zIndex: theme.zIndex.drawer + 1,
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.enteringScreen,
+      duration: theme.transitions.duration.leavingScreen,
     }),
-  }),
-}));
-
-const Drawer = styled(MuiDrawer, {
-  shouldForwardProp: (prop) => prop !== "open",
-})(({ theme, open }) => ({
-  width: drawerWidth,
-  flexShrink: 0,
-  whiteSpace: "nowrap",
-  boxSizing: "border-box",
-  ...(open && {
-    ...openedMixin(theme),
-    "& .MuiDrawer-paper": openedMixin(theme),
-  }),
-  ...(!open && {
-    ...closedMixin(theme),
-    "& .MuiDrawer-paper": closedMixin(theme),
-  }),
-}));
+    ...(open && {
+      marginLeft: drawerWidth,
+      width: `calc(100% - ${drawerWidth}px)`,
+      transition: theme.transitions.create(["width", "margin"], {
+        easing: theme.transitions.easing.sharp,
+        duration: theme.transitions.duration.enteringScreen,
+      }),
+    }),
+  })
+);
+const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== "open" })(
+  ({ theme, open }) => ({
+    width: drawerWidth,
+    flexShrink: 0,
+    whiteSpace: "nowrap",
+    boxSizing: "border-box",
+    ...(open && {
+      ...openedMixin(theme),
+      "& .MuiDrawer-paper": openedMixin(theme),
+    }),
+    ...(!open && {
+      ...closedMixin(theme),
+      "& .MuiDrawer-paper": closedMixin(theme),
+    }),
+  })
+);
 
 export default function DashboardLayout() {
   const theme = useTheme();
@@ -119,50 +100,48 @@ export default function DashboardLayout() {
 
   const isAdmin = user?.rol === "admin";
 
-  // Menú lateral condicionado por sesión/rol
-const menuItems = [
-  { text: "Inicio", icon: <HomeIcon />, path: "/" },
+  // --- Menú lateral según estado/rol ---
+  const guestMenu = [
+    { text: "Inicio", icon: <HomeIcon />, path: "/" },
+    { text: "Iniciar Sesión", icon: <LoginIcon />, path: "/login" },
+    { text: "Crear Cuenta", icon: <PersonAddIcon />, path: "/register" },
+  ];
 
-  // visibles solo logueados
-  ...(user
-    ? [
-        { text: "Cargar CV", icon: <UploadFileIcon />, path: "/CVForm" },
-        { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
-        { text: "Búsquedas activas", icon: <WorkIcon />, path: "/searches" },
-        // Mejor manejar logout con action (no path)
-        { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
-      ]
-    : []),
+  const userMenu = [
+    { text: "Inicio", icon: <HomeIcon />, path: "/" },
+    { text: "Cargar CV", icon: <UploadFileIcon />, path: "/CVForm" },
+    { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
+    { text: "Búsquedas activas", icon: <WorkIcon />, path: "/searches" },
+    { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
+  ];
 
-  // visibles solo NO logueados
-  ...(!user
-    ? [
-        { text: "Iniciar Sesión", icon: <LoginIcon />, path: "/login" },
-        { text: "Crear Cuenta", icon: <PersonAddIcon />, path: "/register" },
-      ]
-    : []),
+  const adminMenu = [
+    { text: "Inicio", icon: <HomeIcon />, path: "/" },
+    // reemplaza "Búsquedas activas" por ABM de Búsqueda
+    { text: "ABM de Búsquedas", icon: <WorkIcon />, path: "/admin/searches" },
+    { text: "Panel de Usuarios", icon: <PeopleIcon />, path: "/admin/users" },
+    { text: "Panel de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },
+    { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
+  ];
 
-  // solo admin (ambos ítems en el mismo spread)
-  ...(isAdmin
-    ? [
-        { text: "Panel de Usuarios", icon: <PeopleIcon />, path: "/admin/users" },
-        { text: "Panel de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },
-      ]
-    : []),
-];
+  const menuItems = !user ? guestMenu : isAdmin ? adminMenu : userMenu;
+
+  const handleItemClick = (item) => {
+    if (item.action === "logout") {
+      logout();
+      navigate("/");
+    } else if (item.path) {
+      navigate(item.path);
+    }
+    setOpen(false);
+  };
 
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
       <AppBar position="fixed" open={open}>
         <Toolbar sx={{ display: "flex", alignItems: "center" }}>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            sx={{ mr: 2, ...(open && { display: "none" }) }}
-          >
+          <IconButton color="inherit" aria-label="open drawer" onClick={handleDrawerOpen} edge="start" sx={{ mr: 2, ...(open && { display: "none" }) }}>
             <MenuIcon />
           </IconButton>
 
@@ -170,7 +149,6 @@ const menuItems = [
             RECURSOS HUMANOS
           </Typography>
 
-          {/* Derecha del AppBar */}
           {!user ? (
             <Stack direction="row" spacing={1}>
               <Button color="inherit" onClick={() => navigate("/login")}>Ingresar</Button>
@@ -195,18 +173,20 @@ const menuItems = [
                 anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                 transformOrigin={{ vertical: "top", horizontal: "right" }}
               >
+                {!isAdmin && (
+                  <MenuItem
+                    onClick={() => {
+                      handleMenuClose();
+                      navigate("/profile");
+                    }}
+                  >
+                    Mi Perfil
+                  </MenuItem>
+                )}
                 <MenuItem
                   onClick={() => {
                     handleMenuClose();
-                    navigate("/profile");
-                  }}
-                >
-                  Mi Perfil
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    handleMenuClose();
-                    logout();      // limpia token + contexto
+                    logout();
                     navigate("/");
                   }}
                 >
@@ -226,12 +206,11 @@ const menuItems = [
         </DrawerHeader>
         <Divider />
         <List>
-          {menuItems.map(({ text, icon, path }) => (
-            <motion.div key={text} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} transition={{ type: "spring", stiffness: 300 }}>
+          {menuItems.map((item) => (
+            <motion.div key={item.text} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} transition={{ type: "spring", stiffness: 300 }}>
               <ListItem disablePadding sx={{ display: "block" }}>
                 <ListItemButton
-                  component={Link}
-                  to={path}
+                  onClick={() => handleItemClick(item)}
                   sx={{
                     minHeight: 48,
                     px: 2.5,
@@ -239,19 +218,11 @@ const menuItems = [
                     transition: "background-color 0.3s ease",
                     "&:hover": { backgroundColor: "#e3f2fd" },
                   }}
-                  onClick={() => setOpen(false)}
                 >
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 0,
-                      mr: open ? 3 : "auto",
-                      justifyContent: "center",
-                      color: "inherit",
-                    }}
-                  >
-                    {icon}
+                  <ListItemIcon sx={{ minWidth: 0, mr: open ? 3 : "auto", justifyContent: "center", color: "inherit" }}>
+                    {item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={text} sx={{ opacity: open ? 1 : 0 }} />
+                  <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0 }} />
                 </ListItemButton>
               </ListItem>
             </motion.div>

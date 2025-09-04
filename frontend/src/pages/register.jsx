@@ -25,6 +25,7 @@ export default function RegisterForm() {
 
   // Asegurate de incluir TODOS los campos que enviás al backend
   const [form, setForm] = useState({
+    id: "",
     nombre: "",
     apellido: "",
     email: "",
