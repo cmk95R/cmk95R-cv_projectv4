@@ -9,6 +9,9 @@ import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import cvRoutes from "./routes/cvRoutes.js";
 import adminSearchesRoutes from "./routes/adminSearches.routes.js";
+import searchesRoutes from "./routes/searches.routes.js";
+import applicationsRoutes from "./routes/applications.routes.js";
+
 dotenv.config();
 const app = express();
 
@@ -32,7 +35,8 @@ app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/cv", cvRoutes);
 app.use("/", adminSearchesRoutes); // expone /admin/searches
-
+app.use("/", searchesRoutes);    
+app.use("/", applicationsRoutes);
 
 /* ========== 404 & Error handler ========== */
 app.use(express.json()); // 👈 importante

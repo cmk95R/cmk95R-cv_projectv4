@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon src/app.js",
     "repair:users": "node scripts/repairUsers.js",
+    "seed:searches": "node -r dotenv/config seeds/seed.searches.js",
     "seed": "node -r dotenv/config seeds/seed.js",
     "seed:clear": "cross-env SEED_CLEAR=true node -r dotenv/config seeds/seed.js"
   },

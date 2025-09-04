@@ -120,7 +120,7 @@ export default function AdminUsersGrid() {
 
   return (
     <Box>
-      <Typography variant="h5" sx={{ mb: 2, fontWeight: 700 }}>
+      <Typography variant="h5" sx={{ mb: 2, fontWeight: 400 }}>
         Panel de Usuarios
       </Typography>
 

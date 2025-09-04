@@ -149,7 +149,7 @@ export default function AdminSearches() {
 
     return (
         <Box>
-            <Typography variant="h5" sx={{ mb: 2, fontWeight: 700 }}>
+            <Typography variant="h5" sx={{ mb: 2, fontWeight: 400 }}>
                 ABM de Búsquedas
             </Typography>
 

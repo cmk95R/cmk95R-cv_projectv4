@@ -8,6 +8,7 @@ import AdminUsersGrid from './pages/AdminUserGrid';
 import AdminCandidateGrid from './pages/AdminCandidateGrid';
 import Profile from './pages/profile';
 import AdminSearches from './pages/AdminSearches';
+import PublicSearches from "./pages/PublicSearches";
 // ...
 <Route path="/admin/users" element={<AdminUsersGrid />} />
 function App() {
@@ -23,7 +24,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/login" element={<Login />} />
         <Route path="admin/searches" element={<AdminSearches />} />
-        
+        <Route path="/searches" element={<PublicSearches />} />
       </Route>
 
       {/* Sin layout (login aparte) */}
