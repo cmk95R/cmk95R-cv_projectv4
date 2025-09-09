@@ -1,7 +1,7 @@
 // src/pages/Profile.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
-    Box, Container, Paper, Typography, Divider, Grid, TextField,
+    Box, DatePicker, Container, Paper, Typography, Divider, Grid, TextField,
     MenuItem, Button, Stack, Chip, Snackbar, Alert, Skeleton, Switch, FormControlLabel
 } from "@mui/material";
 import { profileApi } from "../api/auth";
@@ -186,14 +186,9 @@ export default function Profile() {
                             ))}
                         </Grid>
 
-                        <Divider sx={{ my: 3 }} />
-
-
-                        {/* Perfil / redes */}
-                        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
-                            Completa tu perfil
-                        </Typography>
-                        <Grid container spacing={2}>
+                        
+                        
+                        <Grid container spacing={2} paddingTop={3}>
                             <Grid item xs={12} sm={6}>
                                 <TextField fullWidth label="Telefono"
                                     type="tel"
@@ -201,45 +196,22 @@ export default function Profile() {
                                     disabled={!editable}
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField fullWidth label="LinkedIn"
-                                    name="linkedin" value={form.linkedin} onChange={handleChange}
-                                    disabled={!editable}
-                                />
-                            </Grid>
-                            <TextField
+                                <TextField  maxWidth="80%"
                                 label="Fecha de nacimiento"
                                 type="date"
                                 name="nacimiento"
                                 value={form.nacimiento}
                                 onChange={handleChange}
                                 InputLabelProps={{ shrink: true }}
-                                fullWidth
+                                disabled={!editable}
                             />
-                        </Grid>
-                        <Divider sx={{ my: 3 }} />
-
-                        {/* Perfil / redes */}
-                        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
-                            Perfil y Redes
-                        </Typography>
-                        <Grid container spacing={2}>
                             <Grid item xs={12} sm={6}>
                                 <TextField fullWidth label="LinkedIn"
                                     name="linkedin" value={form.linkedin} onChange={handleChange}
                                     disabled={!editable}
                                 />
                             </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    label="Area de Interes"
-                                    name="perfil" value={form.perfil} onChange={handleChange}
-                                    disabled={!editable}
-                                />
-                            </Grid>
-
-
+ 
                         </Grid>
 
                         <Divider sx={{ my: 3 }} />
@@ -284,8 +256,44 @@ export default function Profile() {
                                     <MenuItem key={nivel} value={nivel}>{nivel}</MenuItem>
                                 ))}
                             </TextField>
+        
                         </Grid>
+                                <Grid container spacing={2} paddingTop={3}>
+                            <Grid item xs={12} sm={6}>
+                                <TextField fullWidth label="Institución"
+                                    type="text"
+                                    name="Institución" value={form.institución} onChange={handleChange}
+                                    disabled={!editable}
+                                />
+                            </Grid>
+                            <DatePicker label="name" name="startDate" />
+                                <TextField  maxWidth="80%"
+                                label="Desde"
+                                type="year"
+                                name="nacimiento"
+                                value={form.nacimiento}
+                                onChange={handleChange}
+                                InputLabelProps={{ shrink: true }}
+                                disabled={!editable}
+                            />
+                            <Grid item xs={12} sm={6}>
+                                <TextField fullWidth label="LinkedIn"
+                                    name="linkedin" value={form.linkedin} onChange={handleChange}
+                                    disabled={!editable}
+                                />
+                            </Grid>
+ 
+                        </Grid>      
+                        
+                        
+                        
+                        
                         <Divider sx={{ my: 3 }} />
+
+
+
+
+
                         {/* === Experiencia  === */}
 
                         <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>

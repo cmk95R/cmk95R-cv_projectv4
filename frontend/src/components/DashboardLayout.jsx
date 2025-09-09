@@ -117,7 +117,6 @@ export default function DashboardLayout() {
 
   const adminMenu = [
     { text: "Inicio", icon: <HomeIcon />, path: "/" },
-    // reemplaza "Búsquedas activas" por ABM de Búsqueda
     { text: "ABM de Búsquedas", icon: <WorkIcon />, path: "/admin/searches" },
     { text: "Panel de Usuarios", icon: <PeopleIcon />, path: "/admin/users" },
     { text: "Panel de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },

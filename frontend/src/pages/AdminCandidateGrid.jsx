@@ -130,13 +130,13 @@ export default function AdminCandidatesGrid() {
       field: "ubicacion",
       headerName: "Ubicación",
       flex: 1.2,
-      minWidth: 200,
+      minWidth: 150,
       renderCell: (p) => p.value ? p.value : <span style={{ opacity: .6 }}>—</span>
     },
     {
       field: "area",
       headerName: "Área de interés",
-      width: 180,
+      width: 150,
       renderCell: (p) => p.value ? p.value : <span style={{ opacity: .6 }}>—</span>
     },
     {
@@ -183,7 +183,7 @@ export default function AdminCandidatesGrid() {
             label="Área"
             value={areaFilter}
             onChange={(e) => setAreaFilter(e.target.value)}
-            sx={{ width: 240 }}
+            sx={{ width: 150 }}
           >
             {allAreas.map((a) => (
               <MenuItem key={a} value={a}>

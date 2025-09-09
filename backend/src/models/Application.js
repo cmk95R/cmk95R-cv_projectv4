@@ -15,8 +15,7 @@ const appSchema = new mongoose.Schema(
     state:  { type: String, enum: APP_STATES, default: "Enviada" },
     message:{ type: String, trim: true, default: "" },
 
-    // referencia y pequeño snapshot del CV al momento de aplicar
-    cvRef:  { type: mongoose.Schema.Types.ObjectId, ref: "Cv" },
+    // Snapshot del CV que se postula    cvRef:  { type: mongoose.Schema.Types.ObjectId, ref: "Cv" },
     cvSnapshot: {
       nombre: String,
       apellido: String,
