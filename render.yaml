@@ -2,36 +2,34 @@ services:
   # --- Backend (Node/Express) ---
   - type: web
     name: cv-backend
-    env: node
+    runtime: node
     plan: free
-    branch: main            # o master, la que uses
+    branch: master          # cambia a main si tu rama principal es main
     rootDir: backend
     buildCommand: npm ci
-    startCommand: npm start  # usa tu "start" (node src/app.js)
-    autoDeploy: true
+    startCommand: npm start  # asegúrate de tener "start": "node src/app.js" en backend/package.json
     envVars:
       - key: NODE_VERSION
         value: 18
-      # Cargá estas desde el panel (no commitees secretos):
       # - key: MONGODB_URI
       #   sync: false
       # - key: JWT_SECRET
       #   sync: false
 
-  # --- Frontend (React/Vite/CRA) como sitio estático ---
-  - type: static_site
+  # --- Frontend (Vite - sitio estático) ---
+  - type: web
     name: cv-frontend
+    runtime: static
     plan: free
-    branch: main
+    branch: master          # cambia a main si corresponde
     rootDir: frontend
     buildCommand: npm ci && npm run build
-    staticPublishPath: dist   # Vite => "dist"; si usás CRA, cambiá a "build"
-    autoDeploy: true
+    staticPublishPath: dist
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
     envVars:
-      # Si tu frontend necesita apuntar al backend:
-      # - key: VITE_API_URL        # o REACT_APP_API_URL (CRA)
+      # Si tu frontend consume la API, definí esto en el panel cuando el backend esté online:
+      # - key: VITE_API_URL
       #   value: https://cv-backend.onrender.com
