@@ -25,8 +25,8 @@ export default function Profile() {
     const [saving, setSaving] = useState(false);
     const [editable, setEditable] = useState(false);
     const [rolSeleccionado, setRolSeleccionado] = useState("Desarrollo");
-    const [user, setUser] = useState(null);  // /auth/profile
-    const [cv, setCv] = useState(null);  // /cv/me
+    const [user, setUser] = useState(null);  
+    const [cv, setCv] = useState(null);  
 
     const [snack, setSnack] = useState({ open: false, severity: "success", msg: "" });
     // Animaciones suaves
