@@ -13,26 +13,29 @@ import searchesRoutes from "./routes/searches.routes.js";
 import applicationsRoutes from "./routes/applications.routes.js";
 
 dotenv.config();
+/* ========== Middlewares ========== */
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+// CORS: Vercel prod + previews + localhost
 const allowList = new Set([
   "http://localhost:5173",
-  "https://cmk95-r-cv-projectv4-9xdl4b08v-cristians-projects-76345bd6.vercel.app", // tu URL en Vercel
+  "https://cmk95-r-cv-projectv4-9xdl4b08v-cristians-projects-76345bd6.vercel.app",
 ]);
-const app = express();
 
-/* ========== Middlewares ========== */
 app.use(
   cors({
     origin(origin, cb) {
-      // Permitir llamadas sin Origin (healthchecks, curl)
-      if (!origin) return cb(null, true);
+      if (!origin) return cb(null, true); // healthchecks / curl
       try {
         const { hostname } = new URL(origin);
-        // Permitir tu URL exacta y cualquier subdominio *.vercel.app (previews)
-        if (allowList.has(origin) || hostname.endsWith(".vercel.app")) {
-          return cb(null, true);
-        }
-      } catch (_) {}
-      return cb(new Error("CORS not allowed"));
+        const ok = allowList.has(origin) || hostname.endsWith(".vercel.app");
+        // log de debug (borralo luego)
+        console.log("[CORS] Origin:", origin, "=>", ok ? "OK" : "BLOCK");
+        return cb(ok ? null : new Error("CORS not allowed"), ok);
+      } catch {
+        return cb(new Error("CORS not allowed"));
+      }
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -40,10 +43,8 @@ app.use(
   })
 );
 
-// (Opcional) responder preflights explícitamente
+// Responder preflight
 app.options("*", cors());
-app.use(express.json({ limit: "5mb" }));
-app.use(express.urlencoded({ extended: true }));
 
 /* ========== Healthcheck ========== */
 app.get("/health", (_req, res) => {
@@ -58,8 +59,6 @@ app.use("/", adminSearchesRoutes); // expone /admin/searches
 app.use("/", searchesRoutes);    
 app.use("/", applicationsRoutes);
 
-/* ========== 404 & Error handler ========== */
-app.use(express.json()); // 👈 importante
 
 app.use((req, res) => {
   res.status(404).json({ message: "Ruta no encontrada" });
