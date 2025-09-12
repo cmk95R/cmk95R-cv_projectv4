@@ -1,7 +1,6 @@
 import React from "react";
 import { meApi } from "../api/auth";
-import { AuthContext } from "./authContext"; // OJO: mismo nombre del archivo
-
+import { AuthContext } from "./AuthContext"; 
 export default function AuthProvider({ children }) {
   const [user, setUser] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
