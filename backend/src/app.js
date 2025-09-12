@@ -13,15 +13,35 @@ import searchesRoutes from "./routes/searches.routes.js";
 import applicationsRoutes from "./routes/applications.routes.js";
 
 dotenv.config();
+const allowList = new Set([
+  "http://localhost:5173",
+  "https://cmk95-r-cv-projectv4-9xdl4b08v-cristians-projects-76345bd6.vercel.app", // tu URL en Vercel
+]);
 const app = express();
 
 /* ========== Middlewares ========== */
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin(origin, cb) {
+      // Permitir llamadas sin Origin (healthchecks, curl)
+      if (!origin) return cb(null, true);
+      try {
+        const { hostname } = new URL(origin);
+        // Permitir tu URL exacta y cualquier subdominio *.vercel.app (previews)
+        if (allowList.has(origin) || hostname.endsWith(".vercel.app")) {
+          return cb(null, true);
+        }
+      } catch (_) {}
+      return cb(new Error("CORS not allowed"));
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// (Opcional) responder preflights explícitamente
+app.options("*", cors());
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
