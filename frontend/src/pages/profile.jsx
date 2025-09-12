@@ -1,12 +1,13 @@
 // src/pages/Profile.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
-    Box, DatePicker, Container, Paper, Typography, Divider, Grid, TextField,
+    Box, Container, Paper, Typography, Divider, Grid, TextField,
     MenuItem, Button, Stack, Chip, Snackbar, Alert, Skeleton, Switch, FormControlLabel
 } from "@mui/material";
 import { profileApi } from "../api/auth";
 import { getMyCvApi, upsertMyCvJson } from "../api/cv";
 import { motion } from "framer-motion";
+
 
 const opcionesPorRol = [
     "Administracion",
@@ -186,8 +187,8 @@ export default function Profile() {
                             ))}
                         </Grid>
 
-                        
-                        
+
+
                         <Grid container spacing={2} paddingTop={3}>
                             <Grid item xs={12} sm={6}>
                                 <TextField fullWidth label="Telefono"
@@ -196,22 +197,25 @@ export default function Profile() {
                                     disabled={!editable}
                                 />
                             </Grid>
-                                <TextField  maxWidth="80%"
-                                label="Fecha de nacimiento"
-                                type="date"
-                                name="nacimiento"
-                                value={form.nacimiento}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                disabled={!editable}
-                            />
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Fecha de nacimiento"
+                                    type="date"
+                                    name="nacimiento"
+                                    value={form.nacimiento || ""}
+                                    onChange={handleChange}
+                                    InputLabelProps={{ shrink: true }}
+                                    disabled={!editable}
+                                />
+                            </Grid>
                             <Grid item xs={12} sm={6}>
                                 <TextField fullWidth label="LinkedIn"
                                     name="linkedin" value={form.linkedin} onChange={handleChange}
                                     disabled={!editable}
                                 />
                             </Grid>
- 
+
                         </Grid>
 
                         <Divider sx={{ my: 3 }} />
@@ -256,9 +260,9 @@ export default function Profile() {
                                     <MenuItem key={nivel} value={nivel}>{nivel}</MenuItem>
                                 ))}
                             </TextField>
-        
+
                         </Grid>
-                                <Grid container spacing={2} paddingTop={3}>
+                        <Grid container spacing={2} paddingTop={3}>
                             <Grid item xs={12} sm={6}>
                                 <TextField fullWidth label="Institución"
                                     type="text"
@@ -266,28 +270,30 @@ export default function Profile() {
                                     disabled={!editable}
                                 />
                             </Grid>
-                            <DatePicker label="name" name="startDate" />
-                                <TextField  maxWidth="80%"
-                                label="Desde"
-                                type="year"
-                                name="nacimiento"
-                                value={form.nacimiento}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                disabled={!editable}
-                            />
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Fecha de nacimiento"
+                                    type="date"
+                                    name="nacimiento"
+                                    value={form.nacimiento || ""}
+                                    onChange={handleChange}
+                                    InputLabelProps={{ shrink: true }}
+                                    disabled={!editable}
+                                />
+                            </Grid>
                             <Grid item xs={12} sm={6}>
                                 <TextField fullWidth label="LinkedIn"
                                     name="linkedin" value={form.linkedin} onChange={handleChange}
                                     disabled={!editable}
                                 />
                             </Grid>
- 
-                        </Grid>      
-                        
-                        
-                        
-                        
+
+                        </Grid>
+
+
+
+
                         <Divider sx={{ my: 3 }} />
 
 
@@ -299,7 +305,7 @@ export default function Profile() {
                         <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
                             Experiencia Laboral <Typography component="span" variant="body2" color="text.secondary">    </Typography>
                         </Typography>
-                        <Divider sx={{ my: 3 }} />        
+                        <Divider sx={{ my: 3 }} />
                         {/* Subir CV con drag & drop */}
                         <motion.div variants={sectionVariants}>
                             <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
