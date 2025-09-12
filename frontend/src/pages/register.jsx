@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import SocialLogin from "../components/SocialLogin"; // 👈 ojo al nombre/case
+import SocialLogin from "../components/socialLogin"; // 👈 ojo al nombre/case
 
 export default function RegisterForm() {
   const navigate = useNavigate();
