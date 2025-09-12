@@ -13,6 +13,7 @@ import searchesRoutes from "./routes/searches.routes.js";
 import applicationsRoutes from "./routes/applications.routes.js";
 
 dotenv.config();
+const app = express();
 /* ========== Middlewares ========== */
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
