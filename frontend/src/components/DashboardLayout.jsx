@@ -4,7 +4,7 @@ import { styled, useTheme } from "@mui/material/styles";
 import {
   Box, Drawer as MuiDrawer, AppBar as MuiAppBar, Toolbar, List, CssBaseline,
   Typography, Divider, IconButton, ListItem, ListItemButton, ListItemIcon, ListItemText,
-  Stack, Avatar, Tooltip, Menu, MenuItem, Button,
+  Stack, Avatar, Tooltip, Menu, MenuItem,Button,
 } from "@mui/material";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -21,7 +21,7 @@ import PeopleIcon from "@mui/icons-material/PeopleAlt";
 import PersonIcon from "@mui/icons-material/Person";
 import WorkIcon from "@mui/icons-material/Work";
 import LogoutIcon from "@mui/icons-material/Logout";
-
+import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 const drawerWidth = 240;
 
 const openedMixin = (theme) => ({
@@ -109,7 +109,7 @@ export default function DashboardLayout() {
 
   const userMenu = [
     { text: "Inicio", icon: <HomeIcon />, path: "/" },
-    { text: "Cargar CV", icon: <UploadFileIcon />, path: "/CVForm" },
+    { text: "Mis Postulaciones", icon: <WorkIcon />, path: "/applications/me" },
     { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
     { text: "Búsquedas activas", icon: <WorkIcon />, path: "/searches" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
@@ -120,6 +120,7 @@ export default function DashboardLayout() {
     { text: "ABM de Búsquedas", icon: <WorkIcon />, path: "/admin/searches" },
     { text: "Panel de Usuarios", icon: <PeopleIcon />, path: "/admin/users" },
     { text: "Panel de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },
+    { text: "Postulaciones (Admin)", icon: <AssignmentIndIcon />, path: "/admin/applications" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 

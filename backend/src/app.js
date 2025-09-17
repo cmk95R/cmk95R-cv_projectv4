@@ -11,6 +11,9 @@ import cvRoutes from "./routes/cvRoutes.js";
 import adminSearchesRoutes from "./routes/adminSearches.routes.js";
 import searchesRoutes from "./routes/searches.routes.js";
 import applicationsRoutes from "./routes/applications.routes.js";
+import passport from "passport";
+import { initGooglePassport } from "./auth/google.strategy.js";
+
 
 dotenv.config();
 const app = express();
@@ -46,6 +49,10 @@ app.use(
 
 // Responder preflight
 app.options("*", cors());
+
+// Google OAuth (sin sesiones)
+initGooglePassport();
+app.use(passport.initialize());
 
 /* ========== Healthcheck ========== */
 app.get("/health", (_req, res) => {

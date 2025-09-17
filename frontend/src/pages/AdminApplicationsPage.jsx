@@ -1,0 +1,327 @@
+// src/pages/admin/AdminApplicationsPage.jsx
+import { useEffect, useMemo, useState } from "react";
+import {
+  Box,
+  Container,
+  Stack,
+  Paper,
+  Typography,
+  LinearProgress,
+  Divider,
+  Pagination,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  IconButton,
+  Tooltip,
+  Chip,
+  Menu,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+} from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { listApplicationsApi, updateApplicationApi } from "../api/applications"; // <- tu API
+
+// --- Constantes
+const APP_STATES = [
+  "Enviada",
+  "En revisión",
+  "Preseleccionado",
+  "Rechazado",
+  "Contratado",
+];
+
+const STATE_COLORS = {
+  "Enviada": "default",
+  "En revisión": "info",
+  "Preseleccionado": "warning",
+  "Rechazado": "error",
+  "Contratado": "success",
+};
+
+// --- Subcomponentes in-file para que sea plug&play ---------------------------
+
+function ApplicationsFilters({ value, onChange }) {
+  const handle = (k, v) => onChange({ ...value, [k]: v });
+
+  return (
+    <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+      {/* Tu controller espera 'search' (ObjectId) */}
+      <TextField
+        fullWidth
+        label="ID de Búsqueda (search)"
+        value={value.search}
+        onChange={(e) => handle("search", e.target.value)}
+        placeholder="64f0... (ObjectId de la búsqueda)"
+      />
+
+      <FormControl fullWidth>
+        <InputLabel>Estado</InputLabel>
+        <Select
+          label="Estado"
+          value={value.state}
+          onChange={(e) => handle("state", e.target.value)}
+        >
+          <MenuItem value="">Todos</MenuItem>
+          {APP_STATES.map((s) => (
+            <MenuItem key={s} value={s}>{s}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <TextField
+        fullWidth
+        label="Buscar (nombre, apellido, email, mensaje)"
+        value={value.q}
+        onChange={(e) => handle("q", e.target.value)}
+      />
+    </Stack>
+  );
+}
+
+function ApplicationsTable({ rows, onViewDetail, onChangeState }) {
+  const [anchor, setAnchor] = useState(null);
+  const [current, setCurrent] = useState(null);
+
+  const openMenu = (e, row) => { setAnchor(e.currentTarget); setCurrent(row); };
+  const closeMenu = () => { setAnchor(null); setCurrent(null); };
+
+  const changeTo = async (state) => {
+    if (current?._id) await onChangeState(current._id, state);
+    closeMenu();
+  };
+
+  return (
+    <>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>Fecha</TableCell>
+            <TableCell>Postulante</TableCell>
+            <TableCell>Email</TableCell>
+            <TableCell>Búsqueda</TableCell>
+            <TableCell>Estado</TableCell>
+            <TableCell align="right">Acciones</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow key={row._id} hover>
+              <TableCell>{new Date(row.createdAt).toLocaleString()}</TableCell>
+              <TableCell>{row.cvSnapshot?.nombre} {row.cvSnapshot?.apellido}</TableCell>
+              <TableCell>{row.cvSnapshot?.email}</TableCell>
+              <TableCell>
+                {/* OJO: tu populate de Search es: titulo, area, estado, ubicacion */}
+                <div style={{ fontWeight: 600 }}>{row.search?.titulo || row.search?._id}</div>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                  {row.search?.ubicacion} · {row.search?.area} · {row.search?.estado}
+                </div>
+              </TableCell>
+              <TableCell>
+                <Chip
+                  size="small"
+                  label={row.state}
+                  color={STATE_COLORS[row.state] || "default"}
+                />
+              </TableCell>
+              <TableCell align="right">
+                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                  <Tooltip title="Ver detalle">
+                    <IconButton onClick={() => onViewDetail(row)}>
+                      <VisibilityIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Cambiar estado">
+                    <IconButton onClick={(e) => openMenu(e, row)}>
+                      <MoreVertIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <Menu anchorEl={anchor} open={!!anchor} onClose={closeMenu}>
+        {APP_STATES.filter((s) => s !== current?.state).map((s) => (
+          <MenuItem key={s} onClick={() => changeTo(s)}>{s}</MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+}
+
+function ApplicationDetailDialog({ open, onClose, application }) {
+  if (!application) return null;
+  const cv = application.cvSnapshot || {};
+  const search = application.search || {};
+
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Detalle de Postulación</DialogTitle>
+      <DialogContent dividers>
+        <Typography variant="caption" color="text.secondary">
+          {new Date(application.createdAt).toLocaleString()}
+        </Typography>
+
+        <Stack spacing={2} sx={{ mt: 2 }}>
+          <div>
+            <Typography variant="subtitle2">Estado</Typography>
+            <Chip
+              label={application.state}
+              size="small"
+              color={STATE_COLORS[application.state] || "default"}
+              sx={{ mt: 0.5 }}
+            />
+          </div>
+
+          <div>
+            <Typography variant="subtitle2">Postulante</Typography>
+            <Stack>
+              <Typography>{cv.nombre} {cv.apellido}</Typography>
+              <Typography variant="body2">{cv.email}</Typography>
+              <Typography variant="body2">{cv.telefono}</Typography>
+              <Typography variant="body2">{cv.linkedin}</Typography>
+              <Typography variant="body2">
+                Área: {cv.areaInteres} · Nivel: {cv.nivelAcademico}
+              </Typography>
+            </Stack>
+          </div>
+
+          <div>
+            <Typography variant="subtitle2">Búsqueda</Typography>
+            <Stack>
+              <Typography>{search.titulo || search._id}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {search.ubicacion} · {search.area} · {search.estado}
+              </Typography>
+            </Stack>
+          </div>
+
+          {application.message && (
+            <div>
+              <Typography variant="subtitle2">Mensaje del postulante</Typography>
+              <Typography variant="body2">{application.message}</Typography>
+            </div>
+          )}
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} variant="outlined">Cerrar</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+// --- Página principal --------------------------------------------------------
+
+export default function AdminApplicationsPage() {
+  const [all, setAll] = useState([]);        // lista completa (desde backend)
+  const [items, setItems] = useState([]);    // página actual (slice)
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({ state: "", search: "", q: "" });
+  const [selected, setSelected] = useState(null);
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / limit)), [total, limit]);
+
+  async function fetchData() {
+    setLoading(true);
+    try {
+      const { data } = await listApplicationsApi(filters); // tu endpoint admite state/search/q
+      const list = Array.isArray(data?.items) ? data.items : [];
+      setAll(list);
+      setTotal(list.length);
+      setPage(1); // reset por si cambiaron mucho los resultados
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, [filters]);
+
+  useEffect(() => {
+    const start = (page - 1) * limit;
+    setItems(all.slice(start, start + limit));
+  }, [all, page, limit]);
+
+  const handleChangeState = async (applicationId, newState) => {
+    try {
+      await updateApplicationApi(applicationId, { state: newState });
+      await fetchData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <Container maxWidth="xl" sx={{ py: 3 }}>
+      <Stack spacing={2}>
+        <Typography variant="h5" fontWeight={700}>Postulaciones (Admin)</Typography>
+
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <ApplicationsFilters value={filters} onChange={setFilters} />
+        </Paper>
+
+        <Paper variant="outlined" sx={{ p: 0 }}>
+          {loading && <LinearProgress />}
+          <Box sx={{ p: 2 }}>
+            <ApplicationsTable
+              rows={items}
+              onViewDetail={setSelected}
+              onChangeState={handleChangeState}
+            />
+            <Divider sx={{ my: 2 }} />
+            <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}>
+              <Typography variant="body2">Total: {total}</Typography>
+
+              <Stack direction="row" alignItems="center" spacing={2}>
+                {/* selector simple de tamaño de página */}
+                <TextField
+                  select
+                  size="small"
+                  label="Por pág."
+                  value={limit}
+                  onChange={(e) => setLimit(Number(e.target.value))}
+                  sx={{ minWidth: 120 }}
+                >
+                  {[10, 20, 50, 100].map(n => (
+                    <MenuItem key={n} value={n}>{n}</MenuItem>
+                  ))}
+                </TextField>
+
+                <Pagination
+                  page={page}
+                  count={totalPages}
+                  onChange={(_, p) => setPage(p)}
+                />
+              </Stack>
+            </Stack>
+          </Box>
+        </Paper>
+      </Stack>
+
+      <ApplicationDetailDialog
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        application={selected}
+      />
+    </Container>
+  );
+}

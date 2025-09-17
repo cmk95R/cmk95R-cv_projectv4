@@ -95,7 +95,7 @@ export default function RegisterForm() {
               required
             />
             <TextField
-              label="Localiadad"
+              label="Localidad"
               type="text"
               name="direccion"
               value={form.direccion}

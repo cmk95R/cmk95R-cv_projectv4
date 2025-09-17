@@ -20,7 +20,14 @@ const userSchema = new mongoose.Schema({
   nombre:   { type: String, required: true, trim: true },
   apellido: { type: String, required: true, trim: true },
   email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
-  password: { type: String, required: true, trim: true, select: false },
+  password: {
+    type: String,
+    trim: true,
+    select: false,
+    required: function () {
+      return !this.providers?.google?.id;
+    },
+  },
 
   nacimiento: { type: Date },
   rol: { type: String, enum: roles, default: "user" },
@@ -28,7 +35,7 @@ const userSchema = new mongoose.Schema({
 
   providers: {
     google:   { id: String, email: String },
-    facebook: { id: String, email: String },
+    
   },
 }, { timestamps: true });
 

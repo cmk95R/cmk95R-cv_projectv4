@@ -9,7 +9,9 @@ import AdminCandidateGrid from './pages/AdminCandidateGrid';
 import Profile from './pages/profile';
 import AdminSearches from './pages/AdminSearches';
 import PublicSearches from "./pages/PublicSearches";
-// ...
+import MyApplications from "./pages/myapplicaction"; 
+import AdminApplicationsPage from './pages/AdminApplicationsPage'; 
+import LoginSso from "./pages/LoginSso";
 <Route path="/admin/users" element={<AdminUsersGrid />} />
 function App() {
   return (
@@ -25,6 +27,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="admin/searches" element={<AdminSearches />} />
         <Route path="/searches" element={<PublicSearches />} />
+        <Route path="/applications/me" element={<MyApplications />} />
+        <Route path="/admin/applications" element={< AdminApplicationsPage />} />
+        <Route path="/login/sso" element={<LoginSso />} />
       </Route>
 
       {/* Sin layout (login aparte) */}

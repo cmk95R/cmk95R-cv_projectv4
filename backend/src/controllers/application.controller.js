@@ -1,3 +1,5 @@
+// controllers/application.controller.js
+
 import Application from "../models/Application.js";
 import Search from "../models/Search.js";
 import Cv from "../models/Cv.js";
