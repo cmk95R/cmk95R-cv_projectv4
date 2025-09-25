@@ -13,7 +13,7 @@ const signToken = (user) =>
 // POST /auth/register
 export const register = async (req, res, next) => {
   try {
-    let { nombre, apellido, email, password, direccion, rol } = req.body;
+    let { nombre, apellido, email, password, direccion, rol ,nacimiento} = req.body;
 
     // Normalización mínima
     nombre = String(nombre || "").trim();
@@ -31,7 +31,7 @@ export const register = async (req, res, next) => {
     const safeRole = rol === "admin" ? "user" : (rol || "user");
 
     // Construir payload (el hash lo hace el pre('save') del modelo)
-    const payload = { nombre, apellido, email, password, rol: safeRole };
+    const payload = { nombre, apellido, email, password, rol, nacimiento: safeRole };
 
     // "direccion" del form es una cadena (localidad) o un objeto
     if (typeof direccion === "string" && direccion.trim()) {

@@ -7,18 +7,16 @@ const roles = ["user", "admin"];
 const direccionSchema = new mongoose.Schema({
   pais: { type: String, trim: true, default: "" },
   provincia: { type: String, trim: true, default: "" },
-  ciudad: { type: String, trim: true, default: "" },
-  codigoPostal: { type: String, trim: true, default: "" },
-  linea1: { type: String, trim: true, default: "" },
-  linea2: { type: String, trim: true, default: "" },
+  ciudad: { type: String, trim: true, default: "" }
+  
 }, { _id: false });
 
 const userSchema = new mongoose.Schema({
-  // ⚠️ SIN unique aquí; lo definimos con índice parcial más abajo
   publicId: { type: String, trim: true, default: () => `USR-${Math.random().toString(36).slice(2,8).toUpperCase()}` },
 
   nombre:   { type: String, required: true, trim: true },
   apellido: { type: String, required: true, trim: true },
+  telefono: { type: String, trim: true },
   email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: {
     type: String,
@@ -28,8 +26,7 @@ const userSchema = new mongoose.Schema({
       return !this.providers?.google?.id;
     },
   },
-
-  nacimiento: { type: Date },
+  nacimiento: { type: Date, trim: true },
   rol: { type: String, enum: roles, default: "user" },
   direccion: { type: direccionSchema, default: () => ({}) },
 

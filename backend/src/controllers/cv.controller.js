@@ -1,8 +1,7 @@
 // controllers/cv.controller.js
 import CV from "../models/Cv.js";
 
-// Solo lo que está en tu Profile (EXCLUYENDO datos personales)
-// No aceptamos cvFile por body: solo desde req.file
+
 const ALLOWED_FIELDS = new Set([
   "telefono",
   "linkedin",
@@ -62,7 +61,7 @@ function normalizePayload(body, file) {
 export const getMyCV = async (req, res, next) => {
   try {
     const cv = await CV.findOne({ user: req.user._id })
-      .populate("user", " publicId email nombre apellido rol")
+      .populate("user", " publicId email nombre apellido rol telefono direccion nacimiento")
       .lean();
     return res.json({ cv });
   } catch (err) { next(err); }
@@ -77,7 +76,7 @@ export const upsertMyCV = async (req, res, next) => {
       { user: req.user._id },
       { ...update, $setOnInsert: { user: req.user._id } },
       { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
-    ).populate("user", "publicId email nombre apellido rol");
+    ).populate("user", "publicId email nombre apellido rol telefono direccion nacimiento");
 
     return res.json({ cv, message: "CV actualizado" });
   } catch (err) { next(err); }
@@ -87,7 +86,7 @@ export const upsertMyCV = async (req, res, next) => {
 export const listAllCVs = async (_req, res, next) => {
   try {
     const cvs = await CV.find()
-      .populate("user", "publicId email nombre apellido rol");
+      .populate("user", "publicId email nombre apellido rol telefono direccion nacimiento");
     res.json({ cvs });
   } catch (err) { next(err); }
 };
@@ -96,7 +95,7 @@ export const listAllCVs = async (_req, res, next) => {
 export const getCV = async (req, res, next) => {
   try {
     const cv = await CV.findById(req.params.id)
-      .populate("user", "publicId email nombre apellido rol");
+      .populate("user", "publicId email nombre apellido rol telefono direccion nacimiento createdAt");
     if (!cv) return res.status(404).json({ message: "CV no encontrado" });
     res.json({ cv });
   } catch (err) { next(err); }

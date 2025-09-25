@@ -14,14 +14,17 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HomeIcon from "@mui/icons-material/Home";
+import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import LoginIcon from "@mui/icons-material/Login";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import PeopleIcon from "@mui/icons-material/PeopleAlt";
 import PersonIcon from "@mui/icons-material/Person";
 import WorkIcon from "@mui/icons-material/Work";
+import FindInPageIcon from '@mui/icons-material/FindInPage';
 import LogoutIcon from "@mui/icons-material/Logout";
-import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+
 const drawerWidth = 240;
 
 const openedMixin = (theme) => ({
@@ -109,18 +112,18 @@ export default function DashboardLayout() {
 
   const userMenu = [
     { text: "Inicio", icon: <HomeIcon />, path: "/" },
-    { text: "Mis Postulaciones", icon: <WorkIcon />, path: "/applications/me" },
     { text: "Mi Perfil", icon: <PersonIcon />, path: "/profile" },
-    { text: "Búsquedas activas", icon: <WorkIcon />, path: "/searches" },
+    { text: "Mis Postulaciones", icon: <AssignmentIndIcon />, path: "/applications/me" },
+    { text: "Búsquedas activas", icon: <FindInPageIcon />, path: "/searches" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
   const adminMenu = [
     { text: "Inicio", icon: <HomeIcon />, path: "/" },
     { text: "ABM de Búsquedas", icon: <WorkIcon />, path: "/admin/searches" },
-    { text: "Panel de Usuarios", icon: <PeopleIcon />, path: "/admin/users" },
-    { text: "Panel de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },
-    { text: "Postulaciones (Admin)", icon: <AssignmentIndIcon />, path: "/admin/applications" },
+    { text: "ABM de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
+    { text: "ABM de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },
+    { text: "ABM de Postulaciones", icon: <AssignmentIndIcon />, path: "/admin/applications" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 

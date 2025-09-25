@@ -17,8 +17,13 @@ const cvSchema = new mongoose.Schema({
   telefono: { type: String, trim: true, default: "" },
   linkedin: { type: String, trim: true, default: "" },
 
-  nacimiento: { type: Date, set: sanitizeEmpty },
-
+  nacimiento: { type: Date, trim: true },
+  direccion: {
+    ciudad: { type: String, trim: true, default: "" },
+    provincia: { type: String, trim: true, default: "" },
+    pais: { type: String, trim: true, default: "" },
+  },
+  
   // ❗ Sin default; permite undefined. Si llega "", lo convierte a undefined.
   areaInteres: {
     type: String,

@@ -1,370 +1,382 @@
-// src/pages/Profile.jsx
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-    Box, Container, Paper, Typography, Divider, Grid, TextField,
-    MenuItem, Button, Stack, Chip, Snackbar, Alert, Skeleton, Switch, FormControlLabel
+  Box, Container, Grid, Typography, Avatar, Card, CardContent, IconButton,
+  Chip, Button, TextField, MenuItem, Stack, Divider, Snackbar, Alert, Switch,
+  FormControlLabel, Skeleton
 } from "@mui/material";
+import { styled } from "@mui/system";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
+
 import { profileApi } from "../api/auth";
 import { getMyCvApi, upsertMyCvJson } from "../api/cv";
-import { motion } from "framer-motion";
 
+// ---------- Styled ----------
+const ProfileContainer = styled(Card)({
+  padding: "2rem",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+  borderRadius: 16,
+  background: "#fff",
+});
+const ProfileAvatar = styled(Avatar)({
+  width: 150, height: 150, border: "4px solid #fff",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.15)", margin: "0 auto",
+});
+const InfoCard = styled(Card)({
+  height: "100%", padding: "1.5rem",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.08)", borderRadius: 12,
+});
+const ActionButton = styled(Button)({
+  margin: 8, padding: "8px 24px", borderRadius: 8, textTransform: "none",
+});
 
-const opcionesPorRol = [
-    "Administracion",
-    "Recursos Humanos",
-    "Sistemas",
-    "Pasantia"
-];
+// ---------- Consts ----------
 const nivelesAcademicos = [
-    "Secundario completo", "Secundario incompleto", "Terciario/Técnico en curso",
-    "Terciario/Técnico completo", "Universitario en curso", "Universitario completo",
-    "Posgrado en curso", "Posgrado completo",
+  "Secundario completo", "Secundario incompleto", "Terciario/Técnico en curso",
+  "Terciario/Técnico completo", "Universitario en curso", "Universitario completo",
+  "Posgrado en curso", "Posgrado completo",
 ];
+
 export default function Profile() {
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [editable, setEditable] = useState(false);
-    const [rolSeleccionado, setRolSeleccionado] = useState("Desarrollo");
-    const [user, setUser] = useState(null);  
-    const [cv, setCv] = useState(null);  
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editable, setEditable] = useState(false);
 
-    const [snack, setSnack] = useState({ open: false, severity: "success", msg: "" });
-    // Animaciones suaves
-    const sectionVariants = {
-        hidden: { opacity: 0, y: 14 },
-        visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.35, ease: "easeOut" } }),
-    };
-    const [form, setForm] = useState({
-        nombre: "", nacimiento: "", ciudad: "", provincia: "", pais: "",
-        email: "", telefono: "",
-        areaRol: "Desarrollo",
-        habilidades: [], otraHabilidad: "",
-        competencias: [],
-        perfil: "", salario: "", linkedin: "", repositorio: "",
-        nivelAcademico: "", carreraIT: "", nivelIngles: "Sin conocimientos",
-        certIngles: "", detalleCertIngles: "",
-        ambitoLaboral: "", otraSituacion: "",
-        relacionIT: "", aniosIT: "", disponibilidad: "",
+  const [user, setUser] = useState(null);
+  const [cv, setCv] = useState(null);
+  const [snack, setSnack] = useState({ open: false, severity: "success", msg: "" });
+
+  // ---------- FORM ----------
+  const [form, setForm] = useState({
+    nombre: "", apellido: "", email: "", telefono: "",
+    nacimiento: "", ciudad: "", provincia: "", pais: "",
+    linkedin: "",
+    perfil: "", // summary
+    nivelAcademico: "", institucion: "", periodoEduDesde: "", periodoEduHasta: "",
+    experiencia: [], // [{puesto, empresa, desde, hasta}]
+  });
+
+  const requiredOk = useMemo(() => !!(form.nombre && form.email), [form]);
+  const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const setExp = (i, patch) =>
+    setForm(f => {
+      const arr = [...(f.experiencia || [])];
+      arr[i] = { ...arr[i], ...patch };
+      return { ...f, experiencia: arr };
     });
+  const addExp = () => setForm(f => ({ ...f, experiencia: [...(f.experiencia || []), { puesto: "", empresa: "", desde: "", hasta: "" }] }));
+  const removeExp = (idx) => setForm(f => ({ ...f, experiencia: (f.experiencia || []).filter((_, i) => i !== idx) }));
 
-    const requiredOk = useMemo(() => {
-        const r = form;
-        return r.nombre && r.email;
-    }, [form]);
+  // ---------- LOAD ----------
+  const setFromCv = (cvData, fallbackUser) => {
+    const exp = Array.isArray(cvData?.experiencia) ? cvData.experiencia : [];
+    setForm({
+      nombre: cvData?.nombre ?? fallbackUser?.nombre ?? "",
+      apellido: cvData?.apellido ?? fallbackUser?.apellido ?? "",
+      email: cvData?.email ?? fallbackUser?.email ?? "",
+      telefono: cvData?.telefono ?? "",
+      nacimiento: cvData?.nacimiento ? String(cvData.nacimiento).slice(0, 10) : "",
+      ciudad: cvData?.ciudad ?? "",
+      provincia: cvData?.provincia ?? "",
+      pais: cvData?.pais ?? "",
+      linkedin: cvData?.linkedin ?? "",
+      perfil: cvData?.perfil ?? "",
+      nivelAcademico: cvData?.nivelAcademico ?? "",
+      institucion: cvData?.institucion ?? "",
+      periodoEduDesde: cvData?.periodoEduDesde ?? "",
+      periodoEduHasta: cvData?.periodoEduHasta ?? "",
+      experiencia: exp.map(e => ({
+        puesto: e.puesto ?? "",
+        empresa: e.empresa ?? "",
+        desde: e.desde ? String(e.desde).slice(0, 10) : (e.desde ?? ""),
+        hasta: e.hasta ? String(e.hasta).slice(0, 10) : (e.hasta ?? ""),
+      })),
+    });
+  };
 
-    const setFromCv = (cvData, fallbackUser) => {
-        setForm({
-            nombre: cvData?.nombre ?? fallbackUser?.nombre ?? "",
-            apellido: cvData?.apellido ?? fallbackUser?.apellido ?? "",
-            nacimiento: cvData?.nacimiento ? String(cvData.nacimiento).slice(0, 10) : "",
-            ciudad: cvData?.ciudad ?? "",
-            provincia: cvData?.provincia ?? "",
-            pais: cvData?.pais ?? "",
-            email: cvData?.email ?? fallbackUser?.email ?? "",
-            telefono: cvData?.telefono ?? "",
-            areaRol: cvData?.areaRol ?? "Desarrollo",
-            habilidades: Array.isArray(cvData?.habilidades) ? cvData.habilidades : [],
-            otraHabilidad: cvData?.otraHabilidad ?? "",
-            competencias: Array.isArray(cvData?.competencias) ? cvData.competencias : [],
-            perfil: cvData?.perfil ?? "",
-            salario: cvData?.salario ?? "",
-            linkedin: cvData?.linkedin ?? "",
-            repositorio: cvData?.repositorio ?? "",
-            nivelAcademico: cvData?.nivelAcademico ?? "",
-            carreraIT: cvData?.carreraIT ?? "",
-            nivelIngles: cvData?.nivelIngles ?? "Sin conocimientos",
-            certIngles: cvData?.certIngles ?? "",
-            detalleCertIngles: cvData?.detalleCertIngles ?? "",
-            ambitoLaboral: cvData?.ambitoLaboral ?? "",
-            otraSituacion: cvData?.otraSituacion ?? "",
-            relacionIT: cvData?.relacionIT ?? "",
-            aniosIT: cvData?.aniosIT ?? "",
-            disponibilidad: cvData?.disponibilidad ?? "",
-        });
-    };
+  const fetchAll = async () => {
+    setLoading(true);
+    try {
+      const [{ data: me }, { data: cvResp }] = await Promise.all([profileApi(), getMyCvApi()]);
+      const u = me?.user || null;
+      const c = cvResp?.cv || null;
+      setUser(u); setCv(c);
+      setFromCv(c || {}, u || {});
+    } catch (e) {
+      console.error(e);
+      setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo cargar tu perfil" });
+    } finally { setLoading(false); }
+  };
 
-    const fetchAll = async () => {
-        setLoading(true);
-        try {
-            const [{ data: me }, { data: cvResp }] = await Promise.all([
-                profileApi(),     // GET /auth/profile
-                getMyCvApi(),     // GET /cv/me
-            ]);
-            const u = me?.user || null;
-            const c = cvResp?.cv || null;
-            setUser(u);
-            setCv(c);
-            setFromCv(c || {}, u || {});
-        } catch (e) {
-            console.error(e);
-            setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo cargar tu perfil" });
-        } finally {
-            setLoading(false);
-        }
-    };
+  useEffect(() => { fetchAll(); }, []);
 
-    useEffect(() => { fetchAll(); /* eslint-disable-next-line */ }, []);
+  // ---------- SAVE ----------
+  const handleSave = async () => {
+    if (!requiredOk) {
+      setSnack({ open: true, severity: "warning", msg: "Completá Nombre y Email" });
+      return;
+    }
+    try {
+      setSaving(true);
+      await upsertMyCvJson(form);
+      setSnack({ open: true, severity: "success", msg: "Datos guardados ✅" });
+      setEditable(false);
+      fetchAll();
+    } catch (e) {
+      console.error(e);
+      setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo guardar" });
+    } finally { setSaving(false); }
+  };
+  const handleCancel = () => { setFromCv(cv || {}, user || {}); setEditable(false); };
 
-    const handleDrop = (ev) => {
-        ev.preventDefault();
-        const file = ev.dataTransfer.files?.[0];
-        if (file) setForm((prev) => ({ ...prev, cv: file }));
-    };
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setForm(f => ({ ...f, [name]: value }));
-    };
+  // ---------- UI ----------
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Volver (opcional) */}
+      <Box sx={{ mb: 2 }}>
+        <ActionButton startIcon={<ArrowBackIcon />} variant="outlined" onClick={() => window.history.back()}>
+          Volver
+        </ActionButton>
+      </Box>
 
-
-    const handleSave = async () => {
-        if (!requiredOk) {
-            setSnack({ open: true, severity: "warning", msg: "Completá los campos obligatorios (*)" });
-            return;
-        }
-        try {
-            setSaving(true);
-            await upsertMyCvJson(form); // POST /cv/me (upsert)
-            setSnack({ open: true, severity: "success", msg: "Datos guardados ✅" });
-            setEditable(false);
-            fetchAll();
-        } catch (e) {
-            console.error(e);
-            setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo guardar" });
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    return (
-        <Container maxWidth="md" sx={{ py: 6 }}>
-            <Paper elevation={4} sx={{ p: { xs: 3, sm: 4 }, borderRadius: 3 }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                    <Typography variant="h4" fontWeight={700}>Mi Perfil</Typography>
-                    <FormControlLabel
-                        control={<Switch checked={editable} onChange={(_, v) => setEditable(v)} />}
-                        label="Editar"
-                    />
-                </Stack>
-
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {user ? `Sesión: ${user.nombre || ""} (${user.email})` : <Skeleton width={240} />}
+      {loading ? (
+        <Card sx={{ p: 4, borderRadius: 3 }}>
+          <Skeleton height={48} width="30%" />
+          <Skeleton height={240} sx={{ mt: 2 }} />
+        </Card>
+      ) : (
+        
+        <Grid container spacing={3}>
+          {/* LEFT */}
+          
+          <Grid item xs={12} md={4}>
+            <ProfileContainer>
+              <Box sx={{ textAlign: "center" }}>
+                <ProfileAvatar src={user?.avatarUrl || ""} alt={form.nombre}>
+                  {(form?.nombre?.[0] || "").toUpperCase()}
+                </ProfileAvatar>
+                <Typography variant="h5" sx={{ mt: 2, mb: 1 }}>
+                  {form.nombre} {form.apellido}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {user?.email}
                 </Typography>
 
-                {loading ? (
-                    <Box>
-                        <Skeleton height={32} width="40%" />
-                        <Skeleton height={56} sx={{ my: 1 }} />
-                        <Skeleton height={56} sx={{ my: 1 }} />
-                        <Skeleton height={32} width="40%" sx={{ mt: 3 }} />
-                        <Skeleton height={56} sx={{ my: 1 }} />
-                    </Box>
-                ) : (
-                    <>
-                        {/* Datos personales */}
-                        <Typography variant="h6" sx={{ mt: 1, mb: 1.5, fontWeight: 600 }}>
-                            Datos personales
-                        </Typography>
-                        <Grid container spacing={2}>
-                            {[
+                <ActionButton
+                  startIcon={<FolderOpenIcon />}
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  sx={{ mt: 2 }}
+                  onClick={() => setEditable(true)}
+                >
+                  Editar perfil
+                </ActionButton>
 
-                                { name: "nombre", label: "Nombre *" },
-                                { name: "apellido", label: "Apellido *" },
-                                { name: "email", label: "Correo electrónico *" },
+                <Box sx={{ mt: 3, display: "flex", flexWrap: "wrap", gap: 1, justifyContent: "center" }}>
+                  {form.pais && <Chip label={form.pais} variant="outlined" color="primary" />}
+                  {form.provincia && <Chip label={form.provincia} variant="outlined" color="primary" />}
+                  {form.ciudad && <Chip label={form.ciudad} variant="outlined" color="primary" />}
+                </Box>
 
-                            ].map(f => (
-                                <Grid key={f.name} item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth
-                                        label={f.label}
-                                        name={f.name}
-                                        type={f.type || "text"}
-                                        InputLabelProps={f.InputLabelProps}
-                                        value={form[f.name] || ""}
-                                        onChange={handleChange}
-                                        disabled={!editable}
-                                    />
-                                </Grid>
-                            ))}
-                        </Grid>
+                <Divider sx={{ my: 2 }} />
+                <Stack spacing={1}>
+                  <Typography variant="body2"><b>Teléfono:</b> {form.telefono || "-"}</Typography>
+                  <Typography variant="body2"><b>LinkedIn:</b> {form.linkedin || "-"}</Typography>
+                  <Typography variant="body2"><b>Nacimiento:</b> {form.nacimiento || "-"}</Typography>
+                </Stack>
 
+                <FormControlLabel
+                  sx={{ mt: 2 }}
+                  control={<Switch checked={editable} onChange={(_, v) => setEditable(v)} />}
+                  label="Modo edición"
+                />
+              </Box>
+            </ProfileContainer>
+          
 
+          {/* RIGHT */}
+          <Grid item xs={12} md={8}>
+            <Grid container spacing={2}>
+              {/* Datos Personales */}
+              <Grid item xs={6}>
+                <InfoCard>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                    <Typography variant="h6" color="primary">Datos Personales</Typography>
+                    
+                  </Stack>
 
-                        <Grid container spacing={2} paddingTop={3}>
-                            <Grid item xs={12} sm={6}>
-                                <TextField fullWidth label="Telefono"
-                                    type="tel"
-                                    name="telefono" value={form.telefono} onChange={handleChange}
-                                    disabled={!editable}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Fecha de nacimiento"
-                                    type="date"
-                                    name="nacimiento"
-                                    value={form.nacimiento || ""}
-                                    onChange={handleChange}
-                                    InputLabelProps={{ shrink: true }}
-                                    disabled={!editable}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField fullWidth label="LinkedIn"
-                                    name="linkedin" value={form.linkedin} onChange={handleChange}
-                                    disabled={!editable}
-                                />
-                            </Grid>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth label="Nombre *" value={form.nombre} disabled={!editable}
+                        onChange={(e) => setField("nombre", e.target.value)} />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth label="Apellido *" value={form.apellido} disabled={!editable}
+                        onChange={(e) => setField("apellido", e.target.value)} />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth label="Email *" value={form.email} disabled={!editable}
+                        onChange={(e) => setField("email", e.target.value)} />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth label="Teléfono" value={form.telefono} disabled={!editable}
+                        onChange={(e) => setField("telefono", e.target.value)} />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth multiline minRows={1}
+                        label="Sobre Mi"
+                        value={form.perfil} disabled={!editable}
+                        onChange={(e) => setField("perfil", e.target.value)}
+                      />
+                    </Grid>
+                  </Grid>
+                  
+                </InfoCard>
+              </Grid>
+              </Grid> 
 
-                        </Grid>
+              {/* Contacto */}
+              <Grid item xs={12}>
+                <InfoCard>
+                  <Typography variant="h6" gutterBottom color="primary">Información de contacto</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth label="LinkedIn" value={form.linkedin} disabled={!editable}
+                        onChange={(e) => setField("linkedin", e.target.value)} />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField type="date" fullWidth label="Fecha de nacimiento" value={form.nacimiento}
+                        onChange={(e) => setField("nacimiento", e.target.value)}
+                        InputLabelProps={{ shrink: true }} disabled={!editable} />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField fullWidth label="País" value={form.pais} disabled={!editable}
+                        onChange={(e) => setField("pais", e.target.value)} />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField fullWidth label="Provincia/Estado" value={form.provincia} disabled={!editable}
+                        onChange={(e) => setField("provincia", e.target.value)} />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField fullWidth label="Ciudad" value={form.ciudad} disabled={!editable}
+                        onChange={(e) => setField("ciudad", e.target.value)} />
+                    </Grid>
+                  </Grid>
+                </InfoCard>
+              </Grid>
 
-                        <Divider sx={{ my: 3 }} />
+              {/* Educación */}
+              <Grid item xs={12} sm={6}>
+                <InfoCard>
+                  <Typography variant="h6" gutterBottom color="primary">Educación</Typography>
+                  <Stack spacing={2}>
+                    <TextField
+                      select fullWidth label="Nivel académico"
+                      value={form.nivelAcademico} disabled={!editable}
+                      onChange={(e) => setField("nivelAcademico", e.target.value)}
+                    >
+                      {nivelesAcademicos.map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+                    </TextField>
+                    <TextField fullWidth label="Institución" value={form.institucion} disabled={!editable}
+                      onChange={(e) => setField("institucion", e.target.value)} />
+                    <Grid container spacing={1.5}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField type="date" fullWidth label="Desde"
+                          value={form.periodoEduDesde} disabled={!editable}
+                          onChange={(e) => setField("periodoEduDesde", e.target.value)}
+                          InputLabelProps={{ shrink: true }} />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField type="date" fullWidth label="Hasta"
+                          value={form.periodoEduHasta} disabled={!editable}
+                          onChange={(e) => setField("periodoEduHasta", e.target.value)}
+                          InputLabelProps={{ shrink: true }} />
+                      </Grid>
+                    </Grid>
+                  </Stack>
+                </InfoCard>
+              </Grid>
 
-                        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
-                            Area de Interes
-                        </Typography>
-                        {/* Select de rol */}
-                        <TextField
-                            select
-                            fullWidth
-                            label="Seleccioná el área de tu interés"
-                            value={rolSeleccionado || ""}               // evitar warning controlled/uncontrolled
-                            onChange={(e) => setRolSeleccionado(e.target.value)}
-                        >
-                            {opcionesPorRol.map((rol) => (
-                                <MenuItem key={rol} value={rol}>
-                                    {rol}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-                        <Divider sx={{ my: 3 }} />
+              {/* Experiencia */}
+              <Grid item xs={12} sm={6}>
+                <InfoCard>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="h6" gutterBottom color="primary">Experiencia</Typography>
+                    {editable && (
+                      <Button startIcon={<AddCircleOutlineIcon />} onClick={addExp} variant="outlined">
+                        Agregar
+                      </Button>
+                    )}
+                  </Stack>
 
-                        {/* === Educación  === */}
-                        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
-                            Educacion <Typography component="span" variant="body2" color="text.secondary">    </Typography>
-                        </Typography>
-
-                        {/* Nivel académico */}
-                        <Grid item xs={12} sm={6} component={motion.div} >
-                            <TextField
-                                select
-                                fullWidth
-                                required
-                                label="Nivel académico"
-                                name="nivelAcademico"
-                                value={form.nivelAcademico}
-                                onChange={handleChange}
-                                helperText="Seleccioná tu máximo nivel educativo"
-                            >
-                                {nivelesAcademicos.map((nivel) => (
-                                    <MenuItem key={nivel} value={nivel}>{nivel}</MenuItem>
-                                ))}
-                            </TextField>
-
-                        </Grid>
-                        <Grid container spacing={2} paddingTop={3}>
-                            <Grid item xs={12} sm={6}>
-                                <TextField fullWidth label="Institución"
-                                    type="text"
-                                    name="Institución" value={form.institución} onChange={handleChange}
-                                    disabled={!editable}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Fecha de nacimiento"
-                                    type="date"
-                                    name="nacimiento"
-                                    value={form.nacimiento || ""}
-                                    onChange={handleChange}
-                                    InputLabelProps={{ shrink: true }}
-                                    disabled={!editable}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField fullWidth label="LinkedIn"
-                                    name="linkedin" value={form.linkedin} onChange={handleChange}
-                                    disabled={!editable}
-                                />
-                            </Grid>
-
-                        </Grid>
-
-
-
-
-                        <Divider sx={{ my: 3 }} />
-
-
-
-
-
-                        {/* === Experiencia  === */}
-
-                        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
-                            Experiencia Laboral <Typography component="span" variant="body2" color="text.secondary">    </Typography>
-                        </Typography>
-                        <Divider sx={{ my: 3 }} />
-                        {/* Subir CV con drag & drop */}
-                        <motion.div variants={sectionVariants}>
-                            <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 600 }}>
-                                CV (PDF/DOC) *
-                            </Typography>
-                        </motion.div>
-
-                        <Paper
-                            variant="outlined"
-                            onDragOver={(e) => e.preventDefault()}
-                            onDrop={handleDrop}
-                            sx={{
-                                p: 2,
-                                mb: 2,
-                                borderStyle: "dashed",
-                                borderRadius: 2,
-                                textAlign: "center",
-                                transition: "all .2s",
-                                "&:hover": { boxShadow: 3, borderColor: "primary.main" },
-                            }}
-                        >
-                            <Typography variant="body2" sx={{ mb: 1 }}>
-                                Arrastrá tu archivo aquí o usá el botón.
-                            </Typography>
-                            <Button variant="contained" component="label">
-                                Seleccionar archivo
-                                <input type="file" hidden name="cv" onChange={handleChange} accept=".pdf,.doc,.docx" />
-                            </Button>
-                            {form.cv && (
-                                <Typography variant="body2" sx={{ mt: 1 }}>
-                                    Archivo seleccionado: <Chip label={form.cv.name} size="small" />
-                                </Typography>
-                            )}
-                        </Paper>
-
-
-                        {/* Acciones */}
-                        <Stack direction="row" justifyContent="flex-end" spacing={2} sx={{ mt: 3 }}>
-                            {editable && (
-                                <Button variant="contained" onClick={handleSave} disabled={!requiredOk || saving}>
-                                    {saving ? "Guardando..." : "Guardar cambios"}
-                                </Button>
-                            )}
+                  <Stack spacing={1.5}>
+                    {(form.experiencia || []).map((e, idx) => (
+                      <Card key={idx} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                          <Typography variant="subtitle2">Puesto #{idx + 1}</Typography>
+                          {editable && (
+                            <IconButton size="small" color="error" onClick={() => removeExp(idx)}>
+                              <RemoveCircleOutlineIcon fontSize="small" />
+                            </IconButton>
+                          )}
                         </Stack>
-                    </>
-                )}
+                        <Stack spacing={1.2}>
+                          <TextField label="Job Title" value={e.puesto} disabled={!editable}
+                            onChange={(ev) => setExp(idx, { puesto: ev.target.value })} fullWidth />
+                          <TextField label="Empresa" value={e.empresa} disabled={!editable}
+                            onChange={(ev) => setExp(idx, { empresa: ev.target.value })} fullWidth />
+                          <Grid container spacing={1.2}>
+                            <Grid item xs={12} sm={6}>
+                              <TextField type="date" label="Desde" value={e.desde} disabled={!editable}
+                                onChange={(ev) => setExp(idx, { desde: ev.target.value })}
+                                InputLabelProps={{ shrink: true }} fullWidth />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                              <TextField type="date" label="Hasta" value={e.hasta} disabled={!editable}
+                                onChange={(ev) => setExp(idx, { hasta: ev.target.value })}
+                                InputLabelProps={{ shrink: true }} fullWidth />
+                            </Grid>
+                          </Grid>
+                        </Stack>
+                      </Card>
+                    ))}
+                    {!form.experiencia?.length && (
+                      <Typography variant="body2" color="text.secondary">
+                        {editable ? "Agregá tu primera experiencia laboral." : "Sin registros de experiencia."}
+                      </Typography>
+                    )}
+                  </Stack>
+                </InfoCard>
+              </Grid>
 
-            </Paper>
+              {/* Acciones al pie */}
+            {editable && (
+                      <Stack direction="row" spacing={2} sx={{ mt: 2, justifyContent: "flex-end" }}>
+                        <Button onClick={handleSave} variant="contained" color="success" disabled={saving || !requiredOk}>
+                          {saving ? "Guardando..." : "Guardar"}
+                        </Button>
+                        <Button onClick={handleCancel} variant="outlined">Cancelar</Button>
+                      </Stack>
+                    )}
+            </Grid>
+          </Grid>
+        </Grid>
+      )}
 
-            <Snackbar
-                open={snack.open}
-                autoHideDuration={2500}
-                onClose={() => setSnack(s => ({ ...s, open: false }))}
-                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-            >
-                <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(s => ({ ...s, open: false }))}>
-                    {snack.msg}
-                </Alert>
-            </Snackbar>
-        </Container>
-    );
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={2600}
+        onClose={() => setSnack(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(s => ({ ...s, open: false }))}>
+          {snack.msg}
+        </Alert>
+      </Snackbar>
+    </Container>
+  );
 }

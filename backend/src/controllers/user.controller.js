@@ -4,16 +4,18 @@ import User from "../models/User.js";
 // PATCH /users/:id  (perfil básico)
 export const editUser = async (req, res, next) => {
   try {
-    const { nombre, apellido, email, direccion } = req.body;
+    const { nombre, apellido, email, direccion,telefono } = req.body;
     const update = {};
 
     if (typeof nombre === "string")   update.nombre = nombre.trim();
     if (typeof apellido === "string") update.apellido = apellido.trim();
+    if (typeof telefono === "string") update.telefono = telefono.trim();
     if (typeof email === "string")    update.email = email.trim().toLowerCase();
+    if (typeof nacimiento === "date") update.nacimiento = nacimiento.trim();
 
     if (direccion !== undefined) {
       if (typeof direccion === "string") {
-        update.direccion = { ciudad: direccion.trim() };
+        update.direccion = { ciudad: direccion.trim(), pais: direccion.trim() , provincia: direccion.trim() };
       } else if (direccion && typeof direccion === "object") {
         update.direccion = direccion;
       } else {
@@ -25,7 +27,7 @@ export const editUser = async (req, res, next) => {
       req.params.id,
       update,
       { new: true, runValidators: true, context: "query" }
-    ).select("_id nombre apellido email rol");
+    ).select("_id nombre apellido email rol telefono nacimiento direccion");
 
     if (!u) return res.status(404).json({ message: "Usuario no encontrado" });
     res.json({ message: "Usuario actualizado", user: u });
@@ -35,7 +37,7 @@ export const editUser = async (req, res, next) => {
 // GET /users  (si lo usás para admin)
 export const listUsers = async (_req, res, next) => {
   try {
-    const users = await User.find().select("_id publicId nombre apellido direccion email rol createdAt");
+    const users = await User.find().select("_id publicId nombre apellido direccion nacimiento telefono email rol createdAt");
     res.json({ users });
   } catch (e) { next(e); }
 };
@@ -69,7 +71,7 @@ export const revokeAdmin = async (req, res, next) => {
 // ===================== Admin: Users + CV (para DataGrid) =====================
 // GET /admin/users?q=&rol=user|admin&areaInteres=&nivelAcademico=&hasCv=true|false&page=1&limit=20&sortBy=updatedAt&sortDir=desc
 const SAFE_SORT = new Set([
-  "createdAt","updatedAt","nombre","apellido","email","rol","cvArea","cvNivel"
+  "createdAt","updatedAt","nombre","apellido","email", "telefono","rol","cvArea","cvNivel"
 ]);
 
 export const listUsersWithCv = async (req, res, next) => {
@@ -151,6 +153,8 @@ export const listUsersWithCv = async (req, res, next) => {
           apellido: 1,
           email: 1,
           rol: 1,
+          telefono: 1,
+          nacimiento: 1,
           createdAt: 1,
           updatedAt: 1,
           // dirección básica para "Ubicación" en el front

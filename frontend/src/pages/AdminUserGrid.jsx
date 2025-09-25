@@ -121,7 +121,7 @@ export default function AdminUsersGrid() {
   return (
     <Box>
       <Typography variant="h5" sx={{ mb: 2, fontWeight: 400 }}>
-        Panel de Usuarios
+        ABM de Usuarios
       </Typography>
 
       <Paper sx={{ p: 2, mb: 2, borderRadius: 2 }} elevation={2}>

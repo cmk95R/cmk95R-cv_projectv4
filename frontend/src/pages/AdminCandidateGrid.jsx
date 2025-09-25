@@ -65,7 +65,7 @@ export default function AdminCandidatesGrid() {
       publicId: u?.publicId || "",
       nombre,
       email: u?.email || "",
-      ubicacion,
+      ubicacion: ubicacion || "",
       area: "",   // sin CV no hay área
       nivel: "",  // sin CV no hay nivel
       telefono: "",
@@ -166,7 +166,7 @@ export default function AdminCandidatesGrid() {
   return (
     <Box>
       <Typography variant="h5" sx={{ mb: 2, fontWeight: 700 }}>
-        Panel de Candidatos
+        ABM de Candidatos
       </Typography>
 
       <Paper sx={{ p: 2, mb: 2, borderRadius: 2 }} elevation={2}>

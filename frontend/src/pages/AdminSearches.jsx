@@ -3,7 +3,7 @@ import * as React from "react";
 import {
   Box, Paper, Stack, Typography, Button, TextField, MenuItem,
   Snackbar, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
-  Chip, Divider
+  Divider, Chip
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { listSearchesApi, createSearchApi, updateSearchApi, deleteSearchApi } from "../api/searches";
@@ -11,19 +11,11 @@ import { listSearchesApi, createSearchApi, updateSearchApi, deleteSearchApi } fr
 const AREAS = ["Administracion", "Recursos Humanos", "Sistemas", "Pasantia"];
 const ESTADOS = ["Activa", "Pausada", "Cerrada"];
 
-const STATUS_COLORS = {
-  Activa: "success",
-  Pausada: "warning",
-  Cerrada: "default",
-};
+const STATUS_COLORS = { Activa: "success", Pausada: "warning", Cerrada: "default" };
+const CHIP_W = 100;
+const CHIP_H = 28;
 
-const emptyForm = {
-  titulo: "",
-  area: "",
-  estado: "Activa",
-  ubicacion: "",
-  descripcion: "",
-};
+const emptyForm = { titulo: "", area: "", estado: "Activa", ubicacion: "", descripcion: "" };
 
 export default function AdminSearches() {
   const [rows, setRows] = React.useState([]);
@@ -32,7 +24,7 @@ export default function AdminSearches() {
 
   // filtros
   const [q, setQ] = React.useState("");
-  const [estadoTab, setEstadoTab] = React.useState("Todas"); // Todas | Activa | Pausada | Cerrada
+  const [estadoTab, setEstadoTab] = React.useState("Todas");
 
   // modal
   const [openDlg, setOpenDlg] = React.useState(false);
@@ -65,10 +57,7 @@ export default function AdminSearches() {
   React.useEffect(() => { fetchData(); }, [fetchData]);
 
   const filtered = rows.filter((r) => {
-    // filtro por pestaña de estado (como en PublicSearches)
     if (estadoTab !== "Todas" && r.estado !== estadoTab) return false;
-
-    // búsqueda de texto
     const term = q.trim().toLowerCase();
     if (!term) return true;
     return (
@@ -80,11 +69,7 @@ export default function AdminSearches() {
     );
   });
 
-  const openCreate = () => {
-    setEditingId(null);
-    setForm(emptyForm);
-    setOpenDlg(true);
-  };
+  const openCreate = () => { setEditingId(null); setForm(emptyForm); setOpenDlg(true); };
   const openEdit = (row) => {
     setEditingId(row.id);
     setForm({
@@ -96,11 +81,7 @@ export default function AdminSearches() {
     });
     setOpenDlg(true);
   };
-  const closeDlg = () => {
-    setOpenDlg(false);
-    setForm(emptyForm);
-    setEditingId(null);
-  };
+  const closeDlg = () => { setOpenDlg(false); setForm(emptyForm); setEditingId(null); };
 
   const handleSave = async () => {
     if (!form.titulo || !form.area || !form.estado) {
@@ -121,9 +102,7 @@ export default function AdminSearches() {
     } catch (e) {
       console.error(e);
       setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo guardar" });
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async (row) => {
@@ -160,12 +139,20 @@ export default function AdminSearches() {
       field: "estado",
       headerName: "Estado",
       width: 140,
+      align: "center",
+      headerAlign: "center",
       renderCell: (p) => (
         <Chip
           size="small"
           label={p.value}
           color={STATUS_COLORS[p.value] || "default"}
-          sx={{ fontWeight: "bold" }}
+          sx={{
+            fontWeight: "bold",
+            width: CHIP_W,
+            height: CHIP_H,
+            borderRadius: "999px",
+            "& .MuiChip-label": { width: "100%", textAlign: "center", px: 0 }
+          }}
         />
       ),
       sortable: true,
@@ -175,9 +162,18 @@ export default function AdminSearches() {
       headerName: "Ubicación",
       flex: 1,
       minWidth: 200,
+      align: "center",
+      headerAlign: "center",
       renderCell: (p) =>
         p.value ? (
-          <Typography variant="body2" noWrap title={p.value}>{p.value}</Typography>
+          <Typography
+            variant="body2"
+            noWrap
+            title={p.value}
+            sx={{ width: "100%", textAlign: "center" }}
+          >
+            {p.value}
+          </Typography>
         ) : (
           <span style={{ opacity: 0.6 }}>—</span>
         ),
@@ -188,8 +184,15 @@ export default function AdminSearches() {
       headerName: "Descripción",
       flex: 1.2,
       minWidth: 260,
+      align: "center",
+      headerAlign: "center",
       renderCell: (p) => (
-        <Typography variant="body2" noWrap title={p.value}>
+        <Typography
+          variant="body2"
+          noWrap
+          title={p.value}
+          sx={{ width: "100%", textAlign: "center" }}
+        >
           {p.value || "—"}
         </Typography>
       ),
@@ -199,6 +202,8 @@ export default function AdminSearches() {
       field: "updatedAt",
       headerName: "Última actualización",
       width: 190,
+      align: "center",
+      headerAlign: "center",
       valueGetter: (p) => (p.value ? new Date(p.value).toLocaleString() : ""),
       sortable: true,
     },
@@ -206,9 +211,11 @@ export default function AdminSearches() {
       field: "acciones",
       headerName: "Acciones",
       width: 200,
+      align: "center",
+      headerAlign: "center",
       sortable: false,
       renderCell: (params) => (
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} justifyContent="center" sx={{ width: "100%" }}>
           <Button size="small" variant="outlined" onClick={() => openEdit(params.row)}>Editar</Button>
           <Button size="small" color="error" variant="outlined" onClick={() => handleDelete(params.row)}>Borrar</Button>
         </Stack>
@@ -218,11 +225,9 @@ export default function AdminSearches() {
 
   return (
     <Box sx={{ bgcolor: "#CFE6FF", p: 4, minHeight: "100vh" }}>
-      <Typography variant="h5" gutterBottom>
-        ABM de Búsquedas
-      </Typography>
+      <Typography variant="h5" gutterBottom>ABM de Búsquedas</Typography>
 
-      {/* Barra de filtros y acciones (match con PublicSearches) */}
+      {/* Filtros */}
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} mb={3} alignItems="center">
         <TextField
           label="Buscar (título/área/estado/ubicación/descr.)"
@@ -243,15 +248,10 @@ export default function AdminSearches() {
             </Button>
           ))}
         </Stack>
-        <Button variant="outlined" onClick={fetchData} sx={{ ml: { md: "auto" } }}>
-          Actualizar
-        </Button>
-        <Button variant="contained" onClick={openCreate}>
-          Nueva búsqueda
-        </Button>
+        <Button variant="contained" onClick={openCreate}>Nueva búsqueda</Button>
       </Stack>
 
-      {/* Tabla / Grid con estética alineada */}
+      {/* Tabla */}
       <Paper sx={{ height: 560, borderRadius: 3, overflow: "hidden" }} elevation={1}>
         {loading ? (
           <Stack alignItems="center" justifyContent="center" sx={{ height: "100%" }}>
@@ -274,23 +274,30 @@ export default function AdminSearches() {
                 backgroundColor: "background.default",
                 borderBottom: "none",
                 fontWeight: 700,
+                py: 1,
+                px: 2.5,
               },
-              "& .MuiDataGrid-row": {
-                backgroundColor: "background.paper",
-              },
+              "& .MuiDataGrid-row": { backgroundColor: "background.paper" },
               "& .MuiDataGrid-cell": {
                 borderBottom: "1px solid",
                 borderColor: "divider",
+                py: 1.25,
+                px: 2.5,
+                display: "flex",
+                alignItems: "center",
               },
-              "& .MuiDataGrid-footerContainer": {
-                borderTop: "none",
+              // Centrar horizontalmente estas columnas
+              '& .MuiDataGrid-cell[data-field="ubicacion"], \
+                 & .MuiDataGrid-cell[data-field="descripcion"], \
+                 & .MuiDataGrid-cell[data-field="acciones"]': {
+                justifyContent: "center",
               },
             }}
           />
         )}
       </Paper>
 
-      {/* Modal alta/edición con el mismo mood visual */}
+      {/* Modal alta/edición */}
       <Dialog open={openDlg} onClose={closeDlg} fullWidth maxWidth="sm">
         <DialogTitle>{editingId ? "Editar búsqueda" : "Nueva búsqueda"}</DialogTitle>
         <DialogContent dividers>
@@ -325,6 +332,7 @@ export default function AdminSearches() {
               value={form.ubicacion}
               onChange={(e) => setForm({ ...form, ubicacion: e.target.value })}
               fullWidth
+              sx={{ mt: 1 }}
             />
             <TextField
               label="Descripción"
