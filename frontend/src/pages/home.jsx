@@ -30,6 +30,7 @@ import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import PublicSearchesCarousel from "../components/PublicSearchesCarousel";
 import Footer from '../components/footer';
 // ===== Variants =====
 // Hero: fondo con ken-burns + contenido fade-up
@@ -97,7 +98,7 @@ const testimonios = [
 ];
 
 const areas = [
-  
+
 
   { title: 'Gestion', tags: ['Ventas', 'Cuentas', 'Growth'], img: 'https://images.unsplash.com/photo-1551836022-4c4c79ecde51?auto=format&fit=crop&w=1200&q=60', path: '/apply?area=comercial' },
   { title: 'Administración', tags: ['Finanzas', 'Compras', 'Legal'], img: 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1200&q=60', path: '/apply?area=admin' },
@@ -120,11 +121,12 @@ const Home = () => {
 
   return (
     <Box sx={{ backgroundColor: '#f4f6f8', py: 4 }}>
+
       {/* ===== HERO con animaciones ===== */}
       <Box
         sx={{
           position: 'relative',
-          height: '55vh',
+          height: '50vh',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
@@ -148,7 +150,7 @@ const Home = () => {
             willChange: 'transform',
           }}
         />
-        <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.5)', zIndex: 1 }} />
+        <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0, 0, 0, 0.5)', zIndex: 1 }} />
         <Container maxWidth="md" sx={{ zIndex: 2 }}>
           <motion.div variants={heroContentVariants} initial="hidden" animate="visible">
             <Typography variant="h2" component="h1" gutterBottom>
@@ -166,7 +168,6 @@ const Home = () => {
         </Container>
       </Box>
 
-
       {/* ===== VALORES / CULTURA ===== */}
       <motion.section variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
         <Container maxWidth="lg" sx={{ mb: 8 }}>
@@ -176,7 +177,7 @@ const Home = () => {
               <Grid item xs={12} sm={6} md={3} key={i}>
                 <motion.div variants={cardVariants} whileHover={{ y: -6 }}>
                   <Card sx={{ p: 3, textAlign: 'center', borderRadius: 3, boxShadow: 3 }}>
-                    <v.icon sx={{ fontSize: 60, mb: 1 }} />
+                    <v.icon sx={{ fontSize: 60, mb: 1, color: 'primary.main' }} />
                     <Typography variant="h6" gutterBottom>{v.title}</Typography>
                     <Typography variant="body2" color="text.secondary">{v.text}</Typography>
                   </Card>
@@ -187,72 +188,79 @@ const Home = () => {
         </Container>
       </motion.section>
 
+      {/* ===== CARROUSEL DE PUBLICACIONES ===== */}
+      <motion.section variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
+        <Container maxWidth="lg" sx={{ mb: 8 }}>
+        <PublicSearchesCarousel />
+        </Container>
+      </motion.section>
+
 
       {/* ===== OPORTUNIDADES POR ÁREA ===== */}
-<motion.section
-  variants={sectionVariants}
-  initial="hidden"
-  whileInView="visible"
-  viewport={{ once: true, amount: 0.2 }}
->
-  <Container maxWidth="lg" sx={{ mb: 8 }}>
-    <Typography variant="h4" gutterBottom textAlign="center">
-      Áreas de Oportunidad
-    </Typography>
-    <Grid container spacing={3}>
-      {areas.map((a, i) => (
-        <Grid item xs={12} sm={6} md={3} key={i}>
-          <motion.div variants={cardVariants} whileHover={{ y: -6, scale: 1.01 }}>
-            <Card
-              sx={{
-                borderRadius: 3,
-                overflow: "hidden",
-                boxShadow: 4,
-                display: "flex",
-                flexDirection: "column",
-                height: "360px",        
-              }}
-            >
-              <CardMedia
-                component="img"
-                image={a.img}
-                alt={a.title}
-                sx= {{
-                  height: 160,       
-                  width: "100%",
-                  objectFit: "cover" 
-                  }}
-              />
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography variant="h6" gutterBottom noWrap>
-                  {a.title}
-                </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ maxHeight: 60, overflow: "hidden" }}>
-                  {a.tags.map((t) => (
-                    <Chip key={t} label={t} size="small" />
-                  ))}
-                </Stack>
-              </CardContent>
-              <Box sx={{ p: 2, pt: 0 }}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  onClick={() => navigate(a.path)}
-                >
-                  Ver vacantes
-                </Button>
-              </Box>
-            </Card>
-          </motion.div>
-        </Grid>
-      ))}
-    </Grid>
-  </Container>
-</motion.section>
+      <motion.section
+        variants={sectionVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.2 }}
+      >
+        <Container maxWidth="lg" sx={{ mb: 8 }}>
+          <Typography variant="h4" gutterBottom textAlign="center">
+            Áreas de Oportunidad
+          </Typography>
+          <Grid container spacing={3}>
+            {areas.map((a, i) => (
+              <Grid item xs={12} sm={6} md={3} key={i}>
+                <motion.div variants={cardVariants} whileHover={{ y: -6, scale: 1.01 }}>
+                  <Card
+                    sx={{
+                      borderRadius: 3,
+                      overflow: "hidden",
+                      boxShadow: 4,
+                      display: "flex",
+                      flexDirection: "column",
+                      height: "360px",
+                    }}
+                  >
+                    <CardMedia
+                      component="img"
+                      image={a.img}
+                      alt={a.title}
+                      sx={{
+                        height: 160,
+                        width: "100%",
+                        objectFit: "cover"
+                      }}
+                    />
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Typography variant="h6" gutterBottom noWrap>
+                        {a.title}
+                      </Typography>
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ maxHeight: 60, overflow: "hidden" }}>
+                        {a.tags.map((t) => (
+                          <Chip key={t} label={t} size="small" />
+                        ))}
+                      </Stack>
+                    </CardContent>
+                    <Box sx={{ p: 2, pt: 0 }}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={() => navigate(a.path)}
+                      >
+                        Ver vacantes
+                      </Button>
+                    </Box>
+                  </Card>
+                </motion.div>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
+      </motion.section>
 
-  
+
       {/* ===== SECCIÓN: ¿Aceptás el desafío? (cards grandes con hover) ===== */}
-      <Box sx={{ mb: 8 }}>
+      {/* <Box sx={{ mb: 8 }}>
         <Typography variant="h4" gutterBottom display={'flex'} justifyContent={'center'}>
           ¿Aceptás el desafío?
         </Typography>
@@ -304,7 +312,7 @@ const Home = () => {
             </Grid>
           ))}
         </Grid>
-      </Box>
+      </Box> */}
 
       {/* ===== TESTIMONIOS (carrusel simple) ===== */}
       <Container maxWidth="md" sx={{ mb: 8 }}>
@@ -340,7 +348,7 @@ const Home = () => {
       </Container>
 
 
-      
+
 
       {/* ===== FAQ ===== */}
       <Container maxWidth="md" sx={{ mb: 10 }}>
@@ -377,7 +385,7 @@ const Home = () => {
       </Container>
       <Footer />
     </Box>
-    
+
   );
 };
 

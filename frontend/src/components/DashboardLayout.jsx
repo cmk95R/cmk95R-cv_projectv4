@@ -4,7 +4,7 @@ import { styled, useTheme } from "@mui/material/styles";
 import {
   Box, Drawer as MuiDrawer, AppBar as MuiAppBar, Toolbar, List, CssBaseline,
   Typography, Divider, IconButton, ListItem, ListItemButton, ListItemIcon, ListItemText,
-  Stack, Avatar, Tooltip, Menu, MenuItem,Button,
+  Stack, Avatar, Tooltip, Menu, MenuItem, Button,
 } from "@mui/material";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -15,7 +15,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HomeIcon from "@mui/icons-material/Home";
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
-import UploadFileIcon from "@mui/icons-material/UploadFile";
+// import UploadFileIcon from "@mui/icons-material/UploadFile";
 import LoginIcon from "@mui/icons-material/Login";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import PeopleIcon from "@mui/icons-material/PeopleAlt";
@@ -53,9 +53,13 @@ const DrawerHeader = styled("div")(({ theme }) => ({
   padding: theme.spacing(0, 1),
   ...theme.mixins.toolbar,
 }));
+
 const AppBar = styled(MuiAppBar, { shouldForwardProp: (prop) => prop !== "open" })(
   ({ theme, open }) => ({
     zIndex: theme.zIndex.drawer + 1,
+    boxShadow: 'none',
+    background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+    color: theme.palette.common.white,
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
@@ -70,6 +74,7 @@ const AppBar = styled(MuiAppBar, { shouldForwardProp: (prop) => prop !== "open" 
     }),
   })
 );
+
 const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== "open" })(
   ({ theme, open }) => ({
     width: drawerWidth,
@@ -92,18 +97,21 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const { user, logout } = React.useContext(AuthContext);
 
+  // === INICIALIZAMOS 'open' a false para que esté cerrado al inicio y se expanda con hover ===
   const [open, setOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const menuOpen = Boolean(anchorEl);
 
+  // handleDrawerOpen y handleDrawerClose ya no se usarán por el IconButton,
+  // pero los mantengo por si decides volver a un comportamiento de click.
   const handleDrawerOpen = () => setOpen(true);
   const handleDrawerClose = () => setOpen(false);
+
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
 
   const isAdmin = user?.rol === "admin";
 
-  // --- Menú lateral según estado/rol ---
   const guestMenu = [
     { text: "Inicio", icon: <HomeIcon />, path: "/" },
     { text: "Iniciar Sesión", icon: <LoginIcon />, path: "/login" },
@@ -136,7 +144,10 @@ export default function DashboardLayout() {
     } else if (item.path) {
       navigate(item.path);
     }
-    setOpen(false);
+    // No cerramos el drawer aquí si el hover es la funcionalidad principal,
+    // se cerrará automáticamente al hacer mouseLeave del drawer.
+    // Si quieres que se cierre al hacer clic en un ítem, puedes añadir setOpen(false); aquí.
+    setOpen(false); // Mantengo este para un comportamiento más usual después de un click.
   };
 
   return (
@@ -144,29 +155,77 @@ export default function DashboardLayout() {
       <CssBaseline />
       <AppBar position="fixed" open={open}>
         <Toolbar sx={{ display: "flex", alignItems: "center" }}>
-          <IconButton color="inherit" aria-label="open drawer" onClick={handleDrawerOpen} edge="start" sx={{ mr: 2, ...(open && { display: "none" }) }}>
-            <MenuIcon />
+          {/* EL ICONO DE HAMBURGUESA SE QUITA O SE HACE CONDICIONAL SI EL HOVER ES LA FORMA PRINCIPAL DE ABRIR */}
+          {/* Si quieres mantenerlo para una apertura manual en móviles o como alternativa: */}
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            onClick={handleDrawerOpen} // Ahora este botón abre/cierra manualmente
+            edge="start"
+            sx={{
+              mr: 2,
+              // Comentamos la siguiente línea si queremos que siempre se vea el botón para abrir manualmente
+              // ...(open && { display: "none" }),
+              color: theme.palette.common.white
+            }}
+          >
+            {open ? <ChevronLeftIcon /> : <MenuIcon />} {/* Cambia el icono si está abierto */}
           </IconButton>
 
-          <Typography variant="h6" noWrap component={Link} to="/" color="inherit" sx={{ textDecoration: "none", flexGrow: 1 }}>
+          <Typography
+            variant="h6"
+            noWrap
+            component={Link}
+            to="/"
+            color="inherit"
+            sx={{
+              textDecoration: "none",
+              flexGrow: 1,
+              fontWeight: 600,
+              color: theme.palette.common.white
+            }}
+          >
             RECURSOS HUMANOS
           </Typography>
 
           {!user ? (
             <Stack direction="row" spacing={1}>
-              <Button color="inherit" onClick={() => navigate("/login")}>Ingresar</Button>
-              <Button variant="outlined" color="inherit" onClick={() => navigate("/register")} sx={{ bgcolor: "white", color: "primary.main" }}>
+              <Button
+                color="inherit"
+                onClick={() => navigate("/login")}
+                sx={{
+                  color: theme.palette.common.white,
+                  '&:hover': {
+                    bgcolor: 'rgba(255,255,255,0.1)'
+                  }
+                }}
+              >
+                Ingresar
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => navigate("/register")}
+                sx={{
+                  bgcolor: theme.palette.common.white,
+                  color: theme.palette.primary.main,
+                  borderColor: theme.palette.common.white,
+                  '&:hover': {
+                    bgcolor: theme.palette.grey[100],
+                    borderColor: theme.palette.grey[100],
+                  }
+                }}
+              >
                 Registrate
               </Button>
             </Stack>
           ) : (
             <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="body2" sx={{ mr: 1, display: { xs: "none", sm: "block" } }}>
+              <Typography variant="body2" sx={{ mr: 1, display: { xs: "none", sm: "block" }, color: theme.palette.common.white }}>
                 Hola, <strong>{user.nombre}</strong>
               </Typography>
               <Tooltip title="Cuenta">
                 <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
-                  <Avatar alt={user.nombre} src={user.avatarUrl || ""} />
+                  <Avatar alt={user.nombre} src={user.avatarUrl || ""} sx={{ bgcolor: theme.palette.primary.light }} />
                 </IconButton>
               </Tooltip>
               <Menu
@@ -201,16 +260,35 @@ export default function DashboardLayout() {
         </Toolbar>
       </AppBar>
 
-      <Drawer variant="permanent" open={open}>
+      {/* === MODIFICACIÓN CLAVE PARA EL HOVER DEL DRAWER === */}
+      <Drawer
+        variant="permanent"
+        open={open}
+        // Eventos para controlar la apertura y cierre con el ratón
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+      >
         <DrawerHeader>
-          <IconButton onClick={handleDrawerClose}>
+          {/* El botón de cerrar aquí ahora se usa solo cuando el drawer está abierto por hover o click */}
+          <IconButton onClick={handleDrawerClose} sx={{ color: theme.palette.text.primary }}>
             {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
           </IconButton>
         </DrawerHeader>
         <Divider />
         <List>
           {menuItems.map((item) => (
-            <motion.div key={item.text} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} transition={{ type: "spring", stiffness: 300 }}>
+            <motion.div
+              key={item.text}
+              whileHover={{
+                scale: 1.05,
+                backgroundColor: theme.palette.action.hover,
+                boxShadow: `0px 2px 8px rgba(0,0,0,0.1)`,
+                transition: { type: "spring", stiffness: 300, damping: 10 }
+              }}
+              whileTap={{ scale: 0.98 }}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0, transition: { delay: 0.1 * menuItems.indexOf(item), type: "spring", stiffness: 100 } }}
+            >
               <ListItem disablePadding sx={{ display: "block" }}>
                 <ListItemButton
                   onClick={() => handleItemClick(item)}
@@ -219,19 +297,19 @@ export default function DashboardLayout() {
                     px: 2.5,
                     justifyContent: open ? "initial" : "center",
                     transition: "background-color 0.3s ease",
-                    "&:hover": { backgroundColor: "#e3f2fd" },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 0, mr: open ? 3 : "auto", justifyContent: "center", color: "inherit" }}>
+                  <ListItemIcon sx={{ minWidth: 0, mr: open ? 3 : "auto", justifyContent: "center", color: theme.palette.text.secondary }}>
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0 }} />
+                  <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0, color: theme.palette.text.primary }} />
                 </ListItemButton>
               </ListItem>
             </motion.div>
           ))}
         </List>
       </Drawer>
+      {/* === FIN MODIFICACIÓN CLAVE PARA EL HOVER DEL DRAWER === */}
 
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <DrawerHeader />

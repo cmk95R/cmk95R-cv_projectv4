@@ -14,6 +14,7 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  Grid,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -35,14 +36,33 @@ export default function PublicSearches() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [showActive, setShowActive] = useState(true);
+
   const [filterType, setFilterType] = useState("Todas"); // "Todas" | "Cerrada" | "Pausada"
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [snack, setSnack] = useState({ open: false, severity: "success", msg: "" });
   const [applyingId, setApplyingId] = useState(null);
   const [appliedIds, setAppliedIds] = useState(() => new Set());
+  
+  const [selectedArea, setSelectedArea] = useState("Todas");
 
-    useEffect(() => {
+   // Filtrar por área seleccionada
+  const rowsFiltradas = useMemo(() => {
+    if (selectedArea === "Todas") return rows;
+    return rows.filter(s => s.area === selectedArea);
+  }, [rows, selectedArea]);
+
+  // Calcular áreas a partir de los datos cargados
+  const areas = useMemo(() => {
+    const set = new Set(rows.map(s => s.area).filter(Boolean));
+    return ["Todas", ...Array.from(set)];
+  }, [rows]);
+
+  // Dividir en columnas para el layout
+  const mitad = Math.ceil(rowsFiltradas.length / 2);
+  const columnas = [rowsFiltradas.slice(0, mitad), rowsFiltradas.slice(mitad)];
+
+  useEffect(() => {
     if (!user) { setAppliedIds(new Set()); return; }
     (async () => {
       try {
@@ -107,7 +127,22 @@ export default function PublicSearches() {
       <Typography variant="h5" gutterBottom>
         Busquedas Activas
       </Typography>
-
+      {/* Filtros por área */}
+      <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+        <Typography variant="body2">Filtrar por área:</Typography>
+        {areas.map(area => (
+          <Button
+            key={area}
+            variant={selectedArea === area ? "contained" : "outlined"}
+            onClick={() => setSelectedArea(area)}
+            size="small"
+            sx={{ textTransform: "none" }}
+          >
+            {area}
+          </Button>
+        ))}
+      </Stack>
+      
       {/* Toggle y filtros */}
       <Stack direction="row" alignItems="center" spacing={2} mb={3}>
         <Switch
@@ -143,118 +178,114 @@ export default function PublicSearches() {
           En Pausa
         </Button>
 
-        <Button variant="text" onClick={fetchData} sx={{ ml: "auto" }}>
+        {/* <Button variant="text" onClick={fetchData} sx={{ ml: "auto" }}>
           Actualizar
-        </Button>
+        </Button> */}
       </Stack>
 
       {/* Lista */}
-      <Stack spacing={2}>
+
+      <Stack direction="row" spacing={2}>
         {loading ? (
-          <Stack alignItems="center" justifyContent="center" sx={{ height: 240 }}>
+          <Stack alignItems="center" justifyContent="center" sx={{ height: 240, width: "100%" }}>
             <CircularProgress />
           </Stack>
         ) : rows.length === 0 ? (
-          <Paper sx={{ p: 3, borderRadius: 3, textAlign: "center" }}>
+          <Paper sx={{ p: 3, borderRadius: 3, textAlign: "center", width: "100%" }}>
             <Typography sx={{ opacity: 0.7 }}>No hay resultados para este filtro.</Typography>
           </Paper>
         ) : (
-          rows.map((item) => (
-            <Paper
-              key={item.id}
-              sx={{
-                p: 2,
-                borderRadius: 3,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                bgcolor: "background.paper",
-              }}
-              elevation={1}
-            >
-              <Stack direction="row" alignItems="center" spacing={2} flex={1}>
-                <PersonOutlineIcon color="primary" sx={{ fontSize: 40 }} />
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" color="primary">
-                    {item.area} • #{String(item.id).slice(-6)}
-                  </Typography>
-
-                  <Typography fontWeight="bold" variant="subtitle1" color="text.primary">
-                    {item.titulo}
-                  </Typography>
-
-                  <Typography variant="body2" color="text.secondary">
-                    {item.ubicacion || item.descripcion?.slice(0, 120)}
-                  </Typography>
-
-                  {/* Fila de estado + botón */}
-                  <Stack direction="row" alignItems="center" sx={{ mt: 1, flexWrap: "wrap", rowGap: 1 }} spacing={1}>
-                    <Chip
-                      label={item.estado}
-                      color={STATUS_COLORS[item.estado] || "default"}
-                      size="small"
-                      sx={{ fontWeight: "bold" }}
-                    />
-
-                    <Box sx={{ flexGrow: 1 }} />
-
-                    {(() => {
-                      const alreadyApplied = appliedIds.has(item.id);
-                      const disabled = alreadyApplied || item.estado !== "Activa" || applyingId === item.id;
-
-                      return (
-                        <Button
-                          variant={alreadyApplied ? "outlined" : "contained"}
-                          color={alreadyApplied ? "success" : "primary"}
+          columnas.map((col, idx) => (
+            <Stack key={idx} spacing={2} flex={1}>
+              {col.map((item) => (
+                <Paper
+                  key={item.id}
+                  sx={{
+                    p: 2,
+                    borderRadius: 3,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    bgcolor: "background.paper",
+                    minWidth: 0,
+                  }}
+                  elevation={1}
+                >
+                  <Stack direction="row" alignItems="center" spacing={2} flex={1}>
+                    <PersonOutlineIcon color="primary" sx={{ fontSize: 40 }} />
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="caption" color="primary">
+                        {item.area} • #{String(item.id).slice(-6)}
+                      </Typography>
+                      <Typography fontWeight="bold" variant="subtitle1" color="text.primary">
+                        {item.titulo}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {item.ubicacion || item.descripcion?.slice(0, 120)}
+                      </Typography>
+                      <Stack direction="row" alignItems="center" sx={{ mt: 1, flexWrap: "wrap", rowGap: 1 }} spacing={1}>
+                        <Chip
+                          label={item.estado}
+                          color={STATUS_COLORS[item.estado] || "default"}
                           size="small"
-                          startIcon={alreadyApplied ? <CheckCircleOutlineIcon /> : null}
-                          disabled={disabled}
-                          onClick={async () => {
-                            if (!user) return navigate("/login");
-                            try {
-                              setApplyingId(item.id);
-                              await applyToSearchApi(item.id, { message: "" });
-                              // marcar como aplicada en memoria
-                              setAppliedIds(prev => {
-                                const next = new Set(prev);
-                                next.add(item.id);
-                                return next;
-                              });
-                              setSnack({ open: true, severity: "success", msg: "Postulación enviada ✅" });
-                            } catch (e) {
-                              const msg = e?.response?.data?.message || "No se pudo postular";
-                              setSnack({ open: true, severity: "error", msg });
-                            } finally {
-                              setApplyingId(null);
-                            }
-                          }}
-                        >
-                          {alreadyApplied
-                            ? "Ya te postulaste"
-                            : (applyingId === item.id ? "Postulando..." : "Postularme")}
-                        </Button>
-                      );
-                    })()}
+                          sx={{ fontWeight: "bold" }}
+                        />
+                        <Box sx={{ flexGrow: 1 }} />
+                        {(() => {
+                          const alreadyApplied = appliedIds.has(item.id);
+                          const disabled = alreadyApplied || item.estado !== "Activa" || applyingId === item.id;
+                          return (
+                            <Button
+                              variant={alreadyApplied ? "outlined" : "contained"}
+                              color={alreadyApplied ? "success" : "primary"}
+                              size="small"
+                              startIcon={alreadyApplied ? <CheckCircleOutlineIcon /> : null}
+                              disabled={disabled}
+                              onClick={async () => {
+                                if (!user) return navigate("/login");
+                                try {
+                                  setApplyingId(item.id);
+                                  await applyToSearchApi(item.id, { message: "" });
+                                  setAppliedIds(prev => {
+                                    const next = new Set(prev);
+                                    next.add(item.id);
+                                    return next;
+                                  });
+                                  setSnack({ open: true, severity: "success", msg: "Postulación enviada ✅" });
+                                } catch (e) {
+                                  const msg = e?.response?.data?.message || "No se pudo postular";
+                                  setSnack({ open: true, severity: "error", msg });
+                                } finally {
+                                  setApplyingId(null);
+                                }
+                              }}
+                            >
+                              {alreadyApplied
+                                ? "Ya te postulaste"
+                                : (applyingId === item.id ? "Postulando..." : "Postularme")}
+                            </Button>
+                          );
+                        })()}
+                      </Stack>
+                    </Box>
                   </Stack>
-
-                </Box>
-              </Stack>
-
-              <IconButton
-                aria-label="detalle"
-                onClick={() => {
-                  // si más adelante hacés la vista de detalle pública:
-                  // navigate(`/searches/${item.id}`);
-                  // por ahora, nada.
-                }}
-              >
-                <ArrowForwardIosIcon fontSize="small" />
-              </IconButton>
-            </Paper>
+                  <IconButton
+                    aria-label="detalle"
+                    onClick={() => {
+                      // si más adelante hacés la vista de detalle pública:
+                      // navigate(`/searches/${item.id}`);
+                    }}
+                  >
+                    <ArrowForwardIosIcon fontSize="small" />
+                  </IconButton>
+                </Paper>
+              ))}
+            </Stack>
           ))
         )}
       </Stack>
-        
+
+
       <Snackbar
         open={snack.open}
         autoHideDuration={2500}
@@ -269,7 +300,7 @@ export default function PublicSearches() {
           {snack.msg}
         </Alert>
       </Snackbar>
-      
+
     </Box>
   );
 }

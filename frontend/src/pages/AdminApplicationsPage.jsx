@@ -9,7 +9,6 @@ import {
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 
-// ⚠️ Dejo tu import EXACTO (no toqué la API)
 import { listApplicationsApi, updateApplicationApi } from "../api/applications";
 
 // --- Constantes

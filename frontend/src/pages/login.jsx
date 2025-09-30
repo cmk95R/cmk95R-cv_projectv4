@@ -76,8 +76,8 @@ export default function Login() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ py: 6 }}>
-      <Paper sx={{ p: 4, borderRadius: 3 }} elevation={4}>
+    <Container maxWidth="sm" sx={{ py: 8 }}>
+      <Paper sx={{ p: 6, borderRadius: 3 }} elevation={4}>
         <form id="login-form" onSubmit={handleSubmit} style={{ width: "100%" }}>
           <Typography variant="h4" fontWeight={700} gutterBottom>
             Bienvenido

@@ -5,7 +5,6 @@ import {
   Container,
   Grid,
   Stack,
-  Link as MUILink,
   IconButton,
   Card,
   CardContent,
@@ -24,195 +23,104 @@ import {
   Skeleton,
   Pagination,
   InputAdornment,
+  Link as MUILink,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import WorkIcon from "@mui/icons-material/Work";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import PaidIcon from "@mui/icons-material/Paid";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import SearchIcon from "@mui/icons-material/Search";
-import MailOutlineIcon from "@mui/icons-material/MailOutline"; // Icono para "Contactar"
+import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import { Link as RouterLink } from "react-router-dom";
+import { myApplicationsApi } from "../api/applications";
 
-// API
-import { myApplicationsApi } from "../api/applications"; // Mantén tu importación real
-
-// Si sigues usando el mock de la API para desarrollo, asegúrate de que esté descomentado aquí
-// Si ya estás usando tu API real, asegúrate de que el mock de arriba esté comentado/eliminado.
-/*
-const myApplicationsApi = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        data: [
-          {
-            _id: "app1",
-            status: "submitted",
-            createdAt: "2023-11-20T10:00:00Z",
-            search: {
-              _id: "search1",
-              titulo: "Desarrollador Full Stack Senior",
-              area: "Tech Solutions Inc.",
-              ciudad: "Buenos Aires",
-              salary: "USD 3000-4000",
-              logo: "https://via.placeholder.com/40/2196F3/FFFFFF?text=TS",
-            },
-          },
-          {
-            _id: "app2",
-            status: "interviewing",
-            createdAt: "2023-11-15T10:00:00Z",
-            search: {
-              _id: "search2",
-              titulo: "Analista de Datos Jr.",
-              area: "Global Metrics",
-              ciudad: "Remoto",
-              salary: "$150.000 - $200.000 ARS",
-              logo: "https://via.placeholder.com/40/4CAF50/FFFFFF?text=GM",
-            },
-          },
-          {
-            _id: "app3",
-            status: "rejected",
-            createdAt: "2023-11-10T10:00:00Z",
-            search: {
-              _id: "search3",
-              titulo: "Gerente de Proyecto",
-              area: "Innovate Corp.",
-              ciudad: "Córdoba",
-              salary: null,
-              logo: "https://via.placeholder.com/40/FF9800/FFFFFF?text=IC",
-            },
-          },
-          {
-            _id: "app4",
-            status: "accepted",
-            createdAt: "2023-11-05T10:00:00Z",
-            search: {
-              _id: "search4",
-              titulo: "Especialista en Marketing Digital",
-              area: "01/07/Brands",
-              ciudad: "Rosario",
-              salary: "Competitivo",
-              logo: "https://via.placeholder.com/40/9C27B0/FFFFFF?text=01",
-            },
-          },
-          {
-            _id: "app5",
-            status: "viewed",
-            createdAt: "2023-10-25T10:00:00Z",
-            search: {
-              _id: "search5",
-              titulo: "Diseñador UX/UI",
-              area: "Creative Hub",
-              ciudad: "Buenos Aires",
-              salary: "$180.000 ARS",
-              logo: "https://via.placeholder.com/40/E91E63/FFFFFF?text=CH",
-            },
-          },
-          {
-            _id: "app6",
-            status: "withdrawn",
-            createdAt: "2023-10-15T10:00:00Z",
-            search: {
-              _id: "search6",
-              titulo: "Contador Senior",
-              area: "Auditorías Globales",
-              ciudad: "Remoto",
-              salary: null,
-              logo: "https://via.placeholder.com/40/607D8B/FFFFFF?text=AG",
-            },
-          },
-        ],
-      });
-    }, 1000);
-  });
+const statusMap = {
+  accepted: { label: "Aprobada", color: "success" },
+  approved: { label: "Aprobada", color: "success" },
+  hired: { label: "Contratado/a", color: "success" },
+  rejected: { label: "Rechazada", color: "error" },
+  declined: { label: "Rechazada", color: "error" },
+  withdrawn: { label: "Retirada", color: "default" },
+  interviewing: { label: "Entrevista", color: "info" },
+  interview: { label: "Entrevista", color: "info" },
+  viewed: { label: "Visto", color: "secondary" },
+  pending: { label: "En revisión", color: "warning" },
+  submitted: { label: "En revisión", color: "warning" },
+  in_review: { label: "En revisión", color: "warning" },
 };
-*/
+
+function formatDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" });
+}
+
+function normalize(app) {
+  const s = app?.search && typeof app.search === "object" ? app.search : {};
+  const id =
+    (typeof app?.search === "string" && app.search) ||
+    s?._id ||
+    app?.searchId ||
+    app?.search_id ||
+    app?.jobId ||
+    app?.job_id ||
+    null;
+
+  const title = s?.titulo || app?.titulo || app?.searchtiTitulo || "Búsqueda";
+  const company = s?.area || app?.area || "";
+  const location = s?.ubicacion || s?.ciudad || app?.location || app?.ciudad || null;
+  const salary = s?.salary || s?.sueldo || s?.compensation || app?.salary || null;
+  const createdAt = app?.createdAt || app?.appliedAt || app?.created_at || app?.fecha || null;
+  const state = (app?.state || app?.estado || "pending").toString().toLowerCase();
+  const logoUrl = s?.logo || s?.logoUrl || s?.logo_url || null;
+
+  return { id, title, company, location, salary, createdAt, state, logoUrl, raw: app };
+}
 
 export default function MyApplications() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [statusOptions, setStatusOptions] = useState([]);
   const [query, setQuery] = useState("");
-
   const [page, setPage] = useState(1);
   const PER_PAGE = 12;
 
+  // Cargar datos desde la API y calcular estados únicos
   useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      setError("");
+      try {
+        const { data } = await myApplicationsApi();
+        const arr = Array.isArray(data) ? data : data?.items || [];
+        setItems(arr);
+
+        // Calcular estados únicos
+        const estados = arr
+          .map(app => (app.state || app.estado || "pending").toString().toLowerCase());
+        setStatusOptions(["ALL", ...Array.from(new Set(estados))]);
+      } catch (e) {
+        const msg = e?.response?.data?.message || e?.message || "Error inesperado";
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
+    }
     fetchData();
   }, []);
 
-  async function fetchData() {
-    setLoading(true);
-    setError("");
-    try {
-      const { data } = await myApplicationsApi();
-      const arr = Array.isArray(data) ? data : data?.items || [];
-      setItems(arr);
-    } catch (e) {
-      const msg = e?.response?.data?.message || e?.message || "Error inesperado";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function formatDate(iso) {
-    if (!iso) return "—";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleDateString("es-AR", { year: "numeric", month: "short", day: "numeric" });
-  }
-
-  const statusMap = {
-    accepted: { label: "Aprobada", color: "success" },
-    approved: { label: "Aprobada", color: "success" },
-    hired: { label: "Contratado/a", color: "success" },
-    rejected: { label: "Rechazada", color: "error" },
-    declined: { label: "Rechazada", color: "error" },
-    withdrawn: { label: "Retirada", color: "default" },
-    interviewing: { label: "Entrevista", color: "info" },
-    interview: { label: "Entrevista", color: "info" },
-    viewed: { label: "Visto", color: "secondary" },
-    pending: { label: "En revisión", color: "warning" },
-    submitted: { label: "En revisión", color: "warning" },
-    in_review: { label: "En revisión", color: "warning" },
-  };
-
-  function normalize(app) {
-    const s = app?.search && typeof app.search === "object" ? app.search : {};
-    const id =
-      (typeof app?.search === "string" && app.search) ||
-      s?._id ||
-      app?.searchId ||
-      app?.search_id ||
-      app?.jobId ||
-      app?.job_id ||
-      null;
-
-    const title = s?.titulo || app?.titulo || app?.searchtiTitulo || "Búsqueda";
-    const company = s?.area || s?.area || app?.area || app?.area || "";
-    const location = s?.ubicacion || s?.ciudad || app?.location || app?.ciudad || null;
-    const salary = s?.salary || s?.sueldo || s?.compensation || app?.salary || null;
-    const createdAt = app?.createdAt || app?.appliedAt || app?.created_at || app?.fecha || null;
-    const statusRaw = (app?.status || app?.estado || "pending").toString().toLowerCase();
-    const logoUrl = s?.logo || s?.logoUrl || s?.logo_url || null;
-    // Removido linkPath ya que no se usará el botón "Ver búsqueda"
-    // const linkPath = id ? `/searches/${id}` : s?.url || app?.url || null;
-
-    return { id, title, company, location, salary, createdAt, statusRaw, logoUrl, raw: app }; // Ya no se devuelve linkPath
-  }
-
+  // Normalizar datos
   const normalized = useMemo(() => items.map(normalize), [items]);
 
+  // Filtrar por estado y búsqueda
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return normalized.filter(({ title, company, statusRaw }) => {
-      const passesStatus = statusFilter === "ALL" || statusRaw === statusFilter;
+    return normalized.filter(({ title, company, state }) => {
+      const passesStatus = statusFilter === "ALL" || state === statusFilter;
       const passesQuery = !q || title.toLowerCase().includes(q) || (company || "").toLowerCase().includes(q);
       return passesStatus && passesQuery;
     });
@@ -228,28 +136,22 @@ export default function MyApplications() {
   // Handler para retirar postulación (simulado)
   const handleRetirarPostulacion = (applicationId, applicationTitle) => {
     if (window.confirm(`¿Estás seguro de que quieres retirar tu postulación a "${applicationTitle}"?`)) {
-      console.log(`Retirando postulación con ID: ${applicationId}`);
-      // Aquí integrarías la lógica de tu API para retirar la postulación
-      // Por ejemplo: withdrawApplicationApi(applicationId).then(fetchData).catch(handleError)
-      // Por ahora, solo simulamos un refresh después de un tiempo
       setLoading(true);
       setTimeout(() => {
         alert(`Postulación a "${applicationTitle}" retirada exitosamente (simulado).`);
-        fetchData(); // Recarga los datos para reflejar el cambio
+        window.location.reload(); // O vuelve a llamar a la API real
       }, 1000);
     }
   };
 
   // Handler para contactar (simulado)
   const handleContactar = (applicationId, companyName) => {
-    console.log(`Contactando por postulación con ID: ${applicationId} para ${companyName}`);
-    // Aquí abrirías un modal de contacto, un chat, o redirigirías a una sección de mensajes.
     alert(`Abriendo chat/formulario para contactar a ${companyName} (simulado).`);
   };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Sección superior de título y botón de refresco */}
+      {/* Título y refresco */}
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "flex-start", sm: "center" }} spacing={2}>
         <Box>
           <Typography variant="h4" fontWeight={700}>Mis postulaciones</Typography>
@@ -257,14 +159,14 @@ export default function MyApplications() {
         </Box>
         <Stack direction="row" spacing={1}>
           <Tooltip title="Actualizar">
-            <IconButton onClick={fetchData} disabled={loading}>
+            <IconButton onClick={() => window.location.reload()} disabled={loading}>
               <RefreshIcon />
             </IconButton>
           </Tooltip>
         </Stack>
       </Stack>
 
-      {/* Sección de filtros */}
+      {/* Filtros */}
       <Box mt={3}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} sm={6} md={5}>
@@ -292,13 +194,11 @@ export default function MyApplications() {
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
-                <MenuItem value="ALL">Todas</MenuItem>
-                <MenuItem value="submitted">En revisión</MenuItem>
-                <MenuItem value="viewed">Visto</MenuItem>
-                <MenuItem value="interviewing">Entrevista</MenuItem>
-                <MenuItem value="accepted">Aprobada</MenuItem>
-                <MenuItem value="rejected">Rechazada</MenuItem>
-                <MenuItem value="withdrawn">Retirada</MenuItem>
+                {statusOptions.map(opt => (
+                  <MenuItem value={opt} key={opt}>
+                    {opt === "ALL" ? "Todas" : (statusMap[opt]?.label || opt)}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
@@ -312,14 +212,14 @@ export default function MyApplications() {
         </Grid>
       </Box>
 
-      {/* Contenido principal: Error, Skeletons, Empty State o Cards */}
+      {/* Contenido principal */}
       <Box mt={3}>
         {error && (
           <Card sx={{ borderRadius: 3, border: (t) => `1px solid ${t.palette.divider}`, mb: 3 }}>
             <CardContent>
               <Typography color="error" fontWeight={600} mb={1}>No pudimos cargar tus postulaciones</Typography>
               <Typography variant="body2" color="text.secondary" mb={2}>{error}</Typography>
-              <Button variant="outlined" onClick={fetchData} startIcon={<RefreshIcon />}>Reintentar</Button>
+              <Button variant="outlined" onClick={() => window.location.reload()} startIcon={<RefreshIcon />}>Reintentar</Button>
             </CardContent>
           </Card>
         )}
@@ -341,9 +241,9 @@ export default function MyApplications() {
                     <Skeleton height={20} width="50%" />
                   </CardContent>
                   <CardActions sx={{ justifyContent: "space-between" }}>
-                    <Skeleton height={36} width={100} /> {/* Para "Retirar" */}
-                    <Skeleton height={36} width={80} /> {/* Para "Contactar" */}
-                    <Skeleton height={20} width={80} /> {/* Para "Ver detalle" */}
+                    <Skeleton height={36} width={100} />
+                    <Skeleton height={36} width={80} />
+                    <Skeleton height={20} width={80} />
                   </CardActions>
                 </Card>
               </Grid>
@@ -369,8 +269,8 @@ export default function MyApplications() {
         {/* Cards */}
         <Grid container spacing={2} mt={0.5}>
           {paginated.map((item, idx) => {
-            const { id, title, company, location, salary, createdAt, statusRaw, logoUrl } = item;
-            const statusCfg = statusMap[statusRaw] || statusMap["pending"];
+            const { id, title, company, location, salary, createdAt, state, logoUrl } = item;
+            const statusCfg = statusMap[state] || statusMap["pending"];
 
             return (
               <Grid item xs={12} md={6} lg={4} key={`${id || "app"}-${idx}`}>
@@ -383,7 +283,7 @@ export default function MyApplications() {
                     border: (t) => `1px solid ${t.palette.divider}`,
                     boxShadow: 'none',
                     '&:hover': {
-                        boxShadow: (t) => t.shadows[3],
+                      boxShadow: (t) => t.shadows[3],
                     }
                   }}
                 >
@@ -415,17 +315,10 @@ export default function MyApplications() {
 
                   <CardContent sx={{ pt: 0 }}>
                     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap mb={1.5}>
-                      <Chip size="small" color={statusCfg.color} label={statusCfg.label} />
-                      {salary && (
-                        <Chip
-                          size="small"
-                          icon={<PaidIcon fontSize="small" />}
-                          label={typeof salary === "string" ? salary : `${salary}`}
-                          variant="outlined"
-                        />
-                      )}
+                      <Chip size="small" color={statusCfg.color} label={typeof state === "string" ? state : `${state}`} />
+                      
                     </Stack>
-
+                      
                     <Stack direction="row" spacing={1.5} alignItems="center" color="text.secondary">
                       <CalendarTodayIcon fontSize="small" />
                       <Typography variant="body2">
@@ -437,35 +330,30 @@ export default function MyApplications() {
                   <Box flexGrow={1} />
                   <Divider />
 
-                  <CardActions sx={{ justifyContent: "space-between", flexWrap: 'wrap', rowGap: 1 }}> {/* Añadido flexWrap y rowGap */}
+                  <CardActions sx={{ justifyContent: "space-between", flexWrap: 'wrap', rowGap: 1 }}>
                     <Stack direction="row" spacing={1}>
-                        {/* Botón de Retirar Postulación */}
-                        {statusRaw !== 'withdrawn' && statusRaw !== 'rejected' && statusRaw !== 'accepted' && ( // Ejemplo: No mostrar si ya está retirada/rechazada/aceptada
-                            <Button
-                                variant="outlined"
-                                color="error"
-                                size="small"
-                                onClick={() => handleRetirarPostulacion(item.raw?._id || item.raw?.id, title)}
-                            >
-                                Retirar
-                            </Button>
-                        )}
-
-                        {/* Botón de Contactar */}
-                        {statusRaw !== 'rejected' && ( // Ejemplo: No mostrar "Contactar" si la postulación fue rechazada
-                            <Button
-                                variant="outlined"
-                                color="primary"
-                                size="small"
-                                startIcon={<MailOutlineIcon fontSize="small" />}
-                                onClick={() => handleContactar(item.raw?._id || item.raw?.id, company)}
-                            >
-                                Contactar
-                            </Button>
-                        )}
+                      {state !== 'withdrawn' && state !== 'rejected' && state !== 'accepted' && (
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={() => handleRetirarPostulacion(item.raw?._id || item.raw?.id, title)}
+                        >
+                          Retirar
+                        </Button>
+                      )}
+                      {state !== 'rejected' && (
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          size="small"
+                          startIcon={<MailOutlineIcon fontSize="small" />}
+                          onClick={() => handleContactar(item.raw?._id || item.raw?.id, company)}
+                        >
+                          Contactar
+                        </Button>
+                      )}
                     </Stack>
-                    
-                    {/* Enlace "Ver detalle" */}
                     <MUILink
                       component={RouterLink}
                       to={`/applications/${item?.raw?._id || item?.raw?.id || idx}`}
