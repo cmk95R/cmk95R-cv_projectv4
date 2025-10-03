@@ -19,7 +19,7 @@ const cvSchema = new mongoose.Schema({
 
   nacimiento: { type: Date, trim: true },
   direccion: {
-    ciudad: { type: String, trim: true, default: "" },
+    localidad: { type: String, trim: true, default: "" },
     provincia: { type: String, trim: true, default: "" },
     pais: { type: String, trim: true, default: "" },
   },

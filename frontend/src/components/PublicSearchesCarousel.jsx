@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { listPublicSearchesApi } from "../api/searches";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
-import "swiper/css/navigation";
-import { Navigation } from "swiper/modules";
+import "swiper/css/navigation"; // Si usas navegación
+import { Navigation, Autoplay } from "swiper/modules";
 
 import ApplicationDetailDialog from "../components/ModalSearches";
 
@@ -67,12 +67,14 @@ export default function PublicSearchesCarousel() {
 
   return (
 
-    <Box sx={{ py: 4 }}>
+    <Box sx={{ py: 2 }}>
       <Typography variant="h4" gutterBottom textAlign="center">
         Busquedas Activas
       </Typography>
       <Swiper
-        modules={[Navigation]}
+        autoplay={{ delay: 3000, disableOnInteraction: false }}
+        loop={true}
+        modules={[Navigation, Autoplay]}
         navigation
         spaceBetween={24}
         slidesPerView={1}
@@ -81,7 +83,7 @@ export default function PublicSearchesCarousel() {
           900: { slidesPerView: 3 },
           1200: { slidesPerView: 4 },
         }}
-        style={{ paddingBottom: 32 }}
+        style={{ width: "100%", paddingLeft: "40px", paddingRight: "19px",paddingBottom: "32px", justifyContent: "center" }}
       >
         {rows.map((item) => (
           <SwiperSlide key={item.id}>
@@ -147,5 +149,3 @@ export default function PublicSearchesCarousel() {
 }
 
 {/* Modal for showing search details */ }
-
-

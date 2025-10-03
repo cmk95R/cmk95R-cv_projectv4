@@ -3,7 +3,7 @@ import * as React from "react";
 import {
   Box, Paper, Stack, Typography, Button, TextField, MenuItem,
   Snackbar, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
-  Divider, Chip
+  Divider, FormControl, InputLabel, Select, Chip
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { listSearchesApi, createSearchApi, updateSearchApi, deleteSearchApi } from "../api/searches";
@@ -25,6 +25,7 @@ export default function AdminSearches() {
   // filtros
   const [q, setQ] = React.useState("");
   const [estadoTab, setEstadoTab] = React.useState("Todas");
+  const [areaFilter, setAreaFilter] = React.useState("Todas");
 
   // modal
   const [openDlg, setOpenDlg] = React.useState(false);
@@ -58,6 +59,7 @@ export default function AdminSearches() {
 
   const filtered = rows.filter((r) => {
     if (estadoTab !== "Todas" && r.estado !== estadoTab) return false;
+    if (areaFilter !== "Todas" && r.area !== areaFilter) return false;
     const term = q.trim().toLowerCase();
     if (!term) return true;
     return (
@@ -235,6 +237,22 @@ export default function AdminSearches() {
           onChange={(e) => setQ(e.target.value)}
           fullWidth
         />
+        <FormControl sx={{ minWidth: 220 }}>
+          <InputLabel id="area-filter-label" sx={{ lineHeight: 'normal' }}>Área</InputLabel>
+          <Select
+            labelId="area-filter-label"
+            id="area-filter-select"
+            value={areaFilter}
+            label="Área"
+            onChange={(e) => setAreaFilter(e.target.value)}
+          >
+            <MenuItem value="Todas">Todas las áreas</MenuItem>
+            {AREAS.map((area) => (
+              <MenuItem key={area} value={area}>{area}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
         <Divider orientation="vertical" flexItem sx={{ display: { xs: "none", md: "block" } }} />
         <Stack direction="row" spacing={1}>
           {["Todas", ...ESTADOS].map((et) => (
@@ -248,7 +266,8 @@ export default function AdminSearches() {
             </Button>
           ))}
         </Stack>
-        <Button variant="contained" onClick={openCreate}>Nueva búsqueda</Button>
+
+        <Button variant="contained" onClick={openCreate} sx={{ lineHeight: 'normal' }} fontsize="small">Agregar búsqueda</Button>
       </Stack>
 
       {/* Tabla */}
@@ -288,8 +307,8 @@ export default function AdminSearches() {
               },
               // Centrar horizontalmente estas columnas
               '& .MuiDataGrid-cell[data-field="ubicacion"], \
-                 & .MuiDataGrid-cell[data-field="descripcion"], \
-                 & .MuiDataGrid-cell[data-field="acciones"]': {
+                & .MuiDataGrid-cell[data-field="descripcion"], \
+                & .MuiDataGrid-cell[data-field="acciones"]': {
                 justifyContent: "center",
               },
             }}

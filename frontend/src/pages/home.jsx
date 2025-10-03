@@ -190,7 +190,7 @@ const Home = () => {
 
       {/* ===== CARROUSEL DE PUBLICACIONES ===== */}
       <motion.section variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
-        <Container maxWidth="lg" sx={{ mb: 8 }}>
+        <Container maxWidth="lg" sx={{ mb: 2 }}>
         <PublicSearchesCarousel />
         </Container>
       </motion.section>

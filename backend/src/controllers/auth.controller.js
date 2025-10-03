@@ -10,15 +10,81 @@ const signToken = (user) =>
     { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
   );
 
+/** Normaliza "direccion" al formato esperado:
+ * {
+ *   provincia?: { id?: string, nombre?: string },
+ *   localidad?: { id?: string, nombre?: string },
+ *   calle?: string, numero?: string, cp?: string
+ * }
+ * Acepta:
+ * - string (legacy): "Flores"
+ * - objeto legacy: { ciudad: "Flores" }
+ * - objeto oficial: { provincia:{id,nombre}, localidad:{id,nombre} }
+ */
+function normalizeDireccion(input) {
+  if (!input) return undefined;
+
+  if (typeof input === "string") {
+    const nombre = input.trim();
+    if (!nombre) return undefined;
+    return { localidad: { nombre } };
+  }
+
+  if (typeof input === "object") {
+    const out = {};
+
+    // legacy { ciudad: "Flores" }
+    if (typeof input.ciudad === "string" && input.ciudad.trim()) {
+      out.localidad = { nombre: input.ciudad.trim() };
+    }
+
+    // oficial provincia/localidad (puede venir string u objeto)
+    if (input.provincia) {
+      if (typeof input.provincia === "string") {
+        out.provincia = { nombre: input.provincia.trim() };
+      } else if (typeof input.provincia === "object") {
+        out.provincia = {
+          id: input.provincia.id ? String(input.provincia.id).trim() : undefined,
+          nombre: input.provincia.nombre ? String(input.provincia.nombre).trim() : undefined,
+        };
+      }
+    }
+    if (input.localidad) {
+      if (typeof input.localidad === "string") {
+        out.localidad = { nombre: input.localidad.trim() };
+      } else if (typeof input.localidad === "object") {
+        out.localidad = {
+          id: input.localidad.id ? String(input.localidad.id).trim() : undefined,
+          nombre: input.localidad.nombre ? String(input.localidad.nombre).trim() : undefined,
+        };
+      }
+    }
+
+    // extras opcionales
+    ["calle", "numero", "cp"].forEach((k) => {
+      if (input[k]) out[k] = String(input[k]).trim();
+    });
+
+    // si quedó vacío, retorná undefined
+    if (!out.provincia && !out.localidad && !out.calle && !out.numero && !out.cp) {
+      return undefined;
+    }
+    return out;
+  }
+
+  return undefined;
+}
+
 // POST /auth/register
 export const register = async (req, res, next) => {
   try {
-    let { nombre, apellido, email, password, direccion, rol ,nacimiento} = req.body;
+    let { nombre, apellido, email, password, direccion, rol, nacimiento } = req.body;
 
     // Normalización mínima
     nombre = String(nombre || "").trim();
     apellido = String(apellido || "").trim();
     email = String(email || "").trim().toLowerCase();
+    password = String(password || "");
     if (!nombre || !apellido || !email || !password) {
       return res.status(400).json({ message: "Faltan campos requeridos" });
     }
@@ -30,15 +96,19 @@ export const register = async (req, res, next) => {
     // Seguridad: no permitir admin desde registro público
     const safeRole = rol === "admin" ? "user" : (rol || "user");
 
-    // Construir payload (el hash lo hace el pre('save') del modelo)
-    const payload = { nombre, apellido, email, password, rol, nacimiento: safeRole };
+    // Normalizar dirección al formato esperado
+    const direccionNorm = normalizeDireccion(direccion);
 
-    // "direccion" del form es una cadena (localidad) o un objeto
-    if (typeof direccion === "string" && direccion.trim()) {
-      payload.direccion = { ciudad: direccion.trim() };
-    } else if (direccion && typeof direccion === "object") {
-      payload.direccion = direccion;
-    }
+    // Construir payload (el hash lo hace el pre('save') del modelo si lo tenés)
+    const payload = {
+      nombre,
+      apellido,
+      email,
+      password,
+      rol: safeRole,  // ✅ corregido
+      nacimiento,     // ✅ ahora nacimiento es nacimiento
+    };
+    if (direccionNorm) payload.direccion = direccionNorm;
 
     const user = await User.create(payload);
 
@@ -91,8 +161,20 @@ export const login = async (req, res, next) => {
 
 // GET /auth/me
 export const me = async (req, res) => {
-  const { _id, nombre, apellido, email, rol } = req.user;
-  res.json({ user: { id: _id, nombre, apellido, email, rol } });
+  // req.user es el documento completo de Mongoose, lo convertimos a objeto plano
+  const userObj = req.user.toObject();
+
+  res.json({
+    user: {
+      id: userObj._id,
+      nombre: userObj.nombre,
+      apellido: userObj.apellido,
+      email: userObj.email,
+      rol: userObj.rol,
+      direccion: userObj.direccion, // Devolvemos el objeto de dirección completo
+      nacimiento: userObj.nacimiento, // Y la fecha de nacimiento
+    },
+  });
 };
 
 // POST /auth/logout (opcional)

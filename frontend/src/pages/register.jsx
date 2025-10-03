@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerApi } from "../api/auth";
 import { AuthContext } from "../context/AuthContext";
@@ -13,24 +13,23 @@ import {
   Container,
   Typography,
   Paper,
-  Divider,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import SocialLogin from "../components/socialLogin"; // 👈 ojo al nombre/case
+import SocialLogin from "../components/socialLogin";
+import DireccionAR from "../components/DireccionAR";
 
 export default function RegisterForm() {
   const navigate = useNavigate();
   const { setUser } = useContext(AuthContext);
 
-  // Asegurate de incluir TODOS los campos que enviás al backend
   const [form, setForm] = useState({
     id: "",
     nombre: "",
     apellido: "",
     email: "",
     password: "",
-    direccion: "",
+    direccion: { provincia: undefined, localidad: undefined },
     remember: false,
   });
 
@@ -42,8 +41,18 @@ export default function RegisterForm() {
     setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
+  const handleDireccionChange = useCallback(
+    (dir) => setForm((p) => ({ ...p, direccion: dir })),
+    []
+  );
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form?.direccion?.provincia?.id || !form?.direccion?.localidad?.id) {
+      alert("Seleccioná provincia y localidad");
+      return;
+    }
+
     setLoading(true);
     try {
       const { data } = await registerApi({
@@ -55,7 +64,7 @@ export default function RegisterForm() {
       });
       localStorage.setItem("token", data.token);
       setUser(data.user);
-      navigate("/"); // redirigí a donde prefieras
+      navigate("/");
     } catch (err) {
       alert(err?.response?.data?.message || "No se pudo registrar");
     } finally {
@@ -94,15 +103,13 @@ export default function RegisterForm() {
               fullWidth
               required
             />
-            <TextField
-              label="Localidad"
-              type="text"
-              name="direccion"
+
+            <DireccionAR
               value={form.direccion}
-              onChange={handleChange}
-              fullWidth
+              onChange={handleDireccionChange}
               required
-            />  
+            />
+
             <TextField
               label="Correo electrónico"
               type="email"
@@ -160,9 +167,6 @@ export default function RegisterForm() {
           </Stack>
         </form>
 
-
-
-        {/* Bloque de login social */}
         <SocialLogin redirectTo="/" />
 
         <Typography align="center" sx={{ mt: 2 }}>

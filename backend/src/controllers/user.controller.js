@@ -1,26 +1,50 @@
 // controllers/user.controller.js
 import User from "../models/User.js";
 
+// Helper para normalizar la dirección que viene del front
+function normalizeDireccion(input) {
+  if (!input || typeof input !== "object") return undefined;
+
+  const out = {};
+
+  // Normaliza provincia y localidad para que sean objetos {id, nombre}
+  if (input.provincia) {
+    out.provincia = typeof input.provincia === 'string'
+      ? { nombre: input.provincia }
+      : { id: input.provincia.id, nombre: input.provincia.nombre };
+  }
+  if (input.localidad) {
+    out.localidad = typeof input.localidad === 'string'
+      ? { nombre: input.localidad }
+      : { id: input.localidad.id, nombre: input.localidad.nombre };
+  }
+
+  // Mantiene otros campos si existen
+  if (input.pais) out.pais = input.pais; // Asumimos que pais es un string
+
+  // Si no hay datos útiles, devuelve undefined
+  if (Object.keys(out).length === 0) return undefined;
+  return out;
+}
+
 // PATCH /users/:id  (perfil básico)
 export const editUser = async (req, res, next) => {
   try {
-    const { nombre, apellido, email, direccion,telefono } = req.body;
+    const { nombre, apellido, email, direccion, telefono, nacimiento } = req.body;
     const update = {};
 
     if (typeof nombre === "string")   update.nombre = nombre.trim();
     if (typeof apellido === "string") update.apellido = apellido.trim();
     if (typeof telefono === "string") update.telefono = telefono.trim();
     if (typeof email === "string")    update.email = email.trim().toLowerCase();
-    if (typeof nacimiento === "date") update.nacimiento = nacimiento.trim();
+    if (nacimiento) update.nacimiento = nacimiento; // Asume que es una fecha válida
 
-    if (direccion !== undefined) {
-      if (typeof direccion === "string") {
-        update.direccion = { ciudad: direccion.trim(), pais: direccion.trim() , provincia: direccion.trim() };
-      } else if (direccion && typeof direccion === "object") {
-        update.direccion = direccion;
-      } else {
-        update.direccion = undefined;
-      }
+    const direccionNorm = normalizeDireccion(direccion);
+    if (direccionNorm) {
+      // Usamos el operador punto para actualizar campos anidados
+      Object.keys(direccionNorm).forEach(key => {
+        update[`direccion.${key}`] = direccionNorm[key];
+      });
     }
 
     const u = await User.findByIdAndUpdate(

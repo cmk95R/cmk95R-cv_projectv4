@@ -48,6 +48,11 @@ const statusMap = {
   pending: { label: "En revisión", color: "warning" },
   submitted: { label: "En revisión", color: "warning" },
   in_review: { label: "En revisión", color: "warning" },
+  enviada: { label: "Enviada", color: "default" },
+  en_revisión: { label: "En revisión", color: "info" },
+  preseleccionado: { label: "Preseleccionado", color: "warning" },
+  rechazado: { label: "Rechazada", color: "error" },
+  contratado: { label: "Contratado/a", color: "success" },
 };
 
 function formatDate(iso) {
@@ -269,7 +274,7 @@ export default function MyApplications() {
         {/* Cards */}
         <Grid container spacing={2} mt={0.5}>
           {paginated.map((item, idx) => {
-            const { id, title, company, location, salary, createdAt, state, logoUrl } = item;
+            const { id, title, company, location, createdAt, state, logoUrl } = item;
             const statusCfg = statusMap[state] || statusMap["pending"];
 
             return (
@@ -277,6 +282,7 @@ export default function MyApplications() {
                 <Card
                   sx={{
                     height: "100%",
+                    width: "320px",
                     display: "flex",
                     flexDirection: "column",
                     borderRadius: 3,

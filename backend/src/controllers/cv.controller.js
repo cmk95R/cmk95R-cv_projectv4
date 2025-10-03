@@ -2,11 +2,21 @@
 import CV from "../models/Cv.js";
 
 
+// Lista de campos que se permiten actualizar en el CV desde el formulario.
 const ALLOWED_FIELDS = new Set([
+  "nombre",
+  "apellido",
+  "nacimiento",
+  "perfil",
   "telefono",
   "linkedin",
+  "email",
   "areaInteres",
   "nivelAcademico",
+  "institucion",
+  "periodoEduDesde",
+  "periodoEduHasta",
+  "experiencia",
 ]);
 
 const OPCIONES_AREA = ["Administracion", "Recursos Humanos", "Sistemas", "Pasantia"];
