@@ -85,10 +85,15 @@ export default function ProfileWizard() {
     try { 
       // Preparamos los datos para el backend.
       // El backend del CV ahora entiende el objeto 'direccion' si los campos están en ALLOWED_FIELDS.
+      // Ajustamos el payload para que coincida con el modelo de CV.
       const payload = {
         ...cvData,
-        provincia: cvData.direccion?.provincia?.nombre, // Aplanamos para el CV
-        localidad: cvData.direccion?.localidad?.nombre, // Aplanamos para el CV
+        // El modelo Cv espera un objeto `direccion` con `localidad` y `provincia` como strings.
+        direccion: {
+          localidad: cvData.direccion?.localidad?.nombre || cvData.localidad || '',
+          provincia: cvData.direccion?.provincia?.nombre || cvData.provincia || '',
+          pais: cvData.direccion?.pais || 'Argentina',
+        }
       };
       await upsertMyCvJson(payload);
       setSnack({ open: true, severity: "success", msg: "Paso guardado correctamente." });
@@ -203,6 +208,14 @@ const PersonalForm = ({ data, onChange, onSave, isSaving }) => {
         <Button variant="outlined" onClick={onSave} disabled={isSaving} sx={{ alignSelf: 'flex-end' }}>
           {isSaving ? <CircularProgress size={24} /> : 'Guardar y Continuar'}
         </Button>
+        {(data.nombre || data.apellido || data.nacimiento || data.perfil) && (
+            <Card variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
+                <Typography variant="subtitle2" fontWeight="bold">Información guardada:</Typography>
+                <Typography>Nombre: {data.nombre || ''} {data.apellido || ''}</Typography>
+                <Typography>Nacimiento: {data.nacimiento ? new Date(data.nacimiento).toLocaleDateString() : 'No especificado'}</Typography>
+                <Typography>Resumen: {data.perfil || 'No especificado'}</Typography>
+            </Card>
+        )}
       </Stack>
     </Fade>
   );
@@ -229,6 +242,15 @@ const ContactLocationForm = ({ data, onFieldChange, onDireccionChange, onSave, i
         <Button variant="outlined" onClick={onSave} disabled={isSaving} sx={{ alignSelf: 'flex-end' }}>
           {isSaving ? <CircularProgress size={24} /> : 'Guardar y Continuar'}
         </Button>
+        {(data.email || data.telefono || data.linkedin || data.direccion?.provincia) && (
+            <Card variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
+                <Typography variant="subtitle2" fontWeight="bold">Información guardada:</Typography>
+                <Typography>Email: {data.email || 'No especificado'}</Typography>
+                <Typography>Teléfono: {data.telefono || 'No especificado'}</Typography>
+                <Typography>LinkedIn: {data.linkedin || 'No especificado'}</Typography>
+                <Typography>Ubicación: {data.direccion?.localidad?.nombre || ''}{data.direccion?.provincia?.nombre ? `, ${data.direccion.provincia.nombre}` : ''}</Typography>
+            </Card>
+        )}
       </Stack>
     </Fade>
   );
@@ -250,6 +272,14 @@ const EducationForm = ({ data, onChange, onSave, isSaving }) => {
                 <Button variant="outlined" onClick={onSave} disabled={isSaving} sx={{ alignSelf: 'flex-end' }}>
                     {isSaving ? <CircularProgress size={24} /> : 'Guardar y Continuar'}
                 </Button>
+                {data.nivelAcademico && (
+                    <Card variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
+                        <Typography variant="subtitle2" fontWeight="bold">Información guardada:</Typography>
+                        <Typography>Nivel: {data.nivelAcademico}</Typography>
+                        <Typography>Institución: {data.institucion || 'No especificada'}</Typography>
+                        <Typography>Período: {data.periodoEduDesde ? new Date(data.periodoEduDesde).toLocaleDateString() : '...'} - {data.periodoEduHasta ? new Date(data.periodoEduHasta).toLocaleDateString() : '...'}</Typography>
+                    </Card>
+                )}
             </Stack>
         </Fade>
     );
@@ -287,6 +317,21 @@ const ExperienceForm = ({ data, onChange, onSave, isSaving }) => {
         <Button variant="outlined" onClick={onSave} disabled={isSaving} sx={{ alignSelf: 'flex-end' }}>
           {isSaving ? <CircularProgress size={24} /> : 'Guardar y Continuar'}
         </Button>
+        {experiences.length > 0 && (
+          <Box mt={3}>
+            <Typography variant="subtitle1" fontWeight="bold" gutterBottom>Experiencias Guardadas:</Typography>
+            <Stack spacing={2}>
+              {experiences.map((exp, idx) => (
+                <Card key={`saved-${idx}`} variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
+                  <Typography fontWeight="medium">{exp.puesto || 'Puesto sin nombre'} en {exp.empresa || 'Empresa sin nombre'}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {exp.desde ? new Date(exp.desde).toLocaleDateString() : '...'} - {exp.hasta ? new Date(exp.hasta).toLocaleDateString() : '...'}
+                  </Typography>
+                </Card>
+              ))}
+            </Stack>
+          </Box>
+        )}
       </Stack>
     </Fade>
   );
@@ -301,7 +346,7 @@ const ReviewAndSaveForm = ({ data, onFinalSave, isSaving }) => (
             <Card variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="subtitle1" fontWeight="bold">Datos Personales:</Typography>
                 <Typography>Nombre: {data.nombre || '—'} {data.apellido || ''}</Typography>
-                <Typography>Nacimiento: {data.nacimiento ? new Date(data.nacimiento + 'T00:00:00').toLocaleDateString() : '—'}</Typography>
+                <Typography>Nacimiento: {data.nacimiento ? new Date(data.nacimiento).toLocaleDateString() : '—'}</Typography>
                 <Typography>Resumen: {data.perfil || '—'}</Typography>
             </Card>
             <Card variant="outlined" sx={{ p: 2 }}>
@@ -322,7 +367,7 @@ const ReviewAndSaveForm = ({ data, onFinalSave, isSaving }) => (
                 <Box key={idx} sx={{ ml: 2, mt: 1 }}>
                     <Typography fontWeight="medium">{exp.puesto} en {exp.empresa}</Typography>
                     <Typography variant="body2" color="text.secondary">
-                        {exp.desde ? new Date(exp.desde + 'T00:00:00').toLocaleDateString() : '—'} - {exp.hasta ? new Date(exp.hasta + 'T00:00:00').toLocaleDateString() : '—'}
+                        {exp.desde ? new Date(exp.desde).toLocaleDateString() : '—'} - {exp.hasta ? new Date(exp.hasta).toLocaleDateString() : '—'}
                     </Typography>
                 </Box>
                 )) : <Typography>Sin experiencia registrada.</Typography>}

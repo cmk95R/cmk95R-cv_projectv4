@@ -98,12 +98,10 @@ const testimonios = [
 ];
 
 const areas = [
-
-
-  { title: 'Gestion', tags: ['Ventas', 'Cuentas', 'Growth'], img: 'https://images.unsplash.com/photo-1551836022-4c4c79ecde51?auto=format&fit=crop&w=1200&q=60', path: '/apply?area=comercial' },
-  { title: 'Administración', tags: ['Finanzas', 'Compras', 'Legal'], img: 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1200&q=60', path: '/apply?area=admin' },
-  { title: 'People / RRHH', tags: ['Selección', 'Clima', 'Capacitación'], img: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=60', path: '/apply?area=rrhh' },
-  { title: 'Tecnologia', tags: ['Software', 'Soporte Tecnico', 'DevOps'], img: 'https://images.pexels.com/photos/442150/pexels-photo-442150.jpeg', path: '/apply?area=tech' }
+  { title: 'Recursos Humanos', tags: ['Seleccion', 'Capacitación', 'Clima'], img: 'https://images.unsplash.com/photo-1551836022-4c4c79ecde51?auto=format&fit=crop&w=1200&q=60', path: '/searches?area=Recursos Humanos' },
+  { title: 'Administración', tags: ['Finanzas', 'Compras', 'Legal'], img: 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1200&q=60', path: '/searches?area=Administracion' },
+  { title: 'Pasantias', tags: ['Aprendizaje', 'Crecimiento'], img: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=60', path: '/searches?area=Pasantia' },
+  { title: 'Sistemas', tags: ['Software', 'Soporte Tecnico', 'DevOps'], img: 'https://images.pexels.com/photos/442150/pexels-photo-442150.jpeg', path: '/searches?area=Sistemas' }
 ];
 
 const Home = () => {

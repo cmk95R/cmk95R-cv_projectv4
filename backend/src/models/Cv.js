@@ -11,6 +11,14 @@ const NIVELES = [
 // Convierte "" o null a undefined → no dispara enum si no es required
 const sanitizeEmpty = v => (v === "" || v == null ? undefined : v);
 
+const experienciaSchema = new mongoose.Schema({
+  puesto: { type: String, trim: true },
+  empresa: { type: String, trim: true },
+  desde: { type: Date },
+  hasta: { type: Date },
+}, { _id: false });
+
+
 const cvSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", unique: true, required: true },
 
@@ -18,6 +26,7 @@ const cvSchema = new mongoose.Schema({
   linkedin: { type: String, trim: true, default: "" },
 
   nacimiento: { type: Date, trim: true },
+  perfil: { type: String, trim: true, default: "" }, // Resumen profesional
   direccion: {
     localidad: { type: String, trim: true, default: "" },
     provincia: { type: String, trim: true, default: "" },
@@ -41,6 +50,12 @@ const cvSchema = new mongoose.Schema({
     set: sanitizeEmpty
   },
 
+  // Nuevos campos de Educación
+  institucion: { type: String, trim: true, default: "" },
+  periodoEduDesde: { type: Date },
+  periodoEduHasta: { type: Date },
+
+  experiencia: [experienciaSchema],
   cvFile: {
     filename: String,
     mimetype: String,

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Stack, TextField, Autocomplete, CircularProgress } from "@mui/material";
+import { Grid, TextField, Autocomplete, CircularProgress } from "@mui/material";
 
 const BASE = "https://apis.datos.gob.ar/georef/api";
 
@@ -88,67 +88,70 @@ export default function DireccionAR({ value, onChange, required }) {
     }, [prov, loc]); // no incluimos onChange
 
     return (
-        <Stack spacing={2}>
-            <Autocomplete
-                options={provincias}
-                value={prov}
-                getOptionLabel={(o) => o?.nombre || ""}
-                onChange={(_e, val) => setProv(val)}
-                isOptionEqualToValue={(a, b) => a.id === b.id}
-                loading={loadingProv}
-                renderOption={(props, option) => (
-                    <li {...props} key={option.id}>
-                        {option.nombre}
-                    </li>
-                )}
-                renderInput={(params) => (
-                    <TextField
-                        {...params}
-                        label="Provincia"
-                        required={required}
-                        InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                                <>
-                                    {loadingProv ? <CircularProgress size={20} /> : null}
-                                    {params.InputProps.endAdornment}
-                                </>
-                            ),
-                        }}
-                    />
-                )}
-            />
-
-            <Autocomplete
-                options={localidades}
-                value={loc}
-                getOptionLabel={(o) => o?.nombre || ""}
-                onChange={(_e, val) => setLoc(val)}
-                isOptionEqualToValue={(a, b) => a.id === b.id}
-                loading={loadingLoc}
-                disabled={!prov}
-                renderOption={(props, option) => (
-                    <li {...props} key={option.id}>
-                        {option.nombre}
-                    </li>
-                )}
-                renderInput={(params) => (
-                    <TextField
-                        {...params}
-                        label="Localidad"
-                        required={required}
-                        InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                                <>
-                                    {loadingLoc ? <CircularProgress size={20} /> : null}
-                                    {params.InputProps.endAdornment}
-                                </>
-                            ),
-                        }}
-                    />
-                )}
-            />
-        </Stack>
+        <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+                <Autocomplete
+                    options={provincias}
+                    value={prov}
+                    getOptionLabel={(o) => o?.nombre || ""}
+                    onChange={(_e, val) => setProv(val)}
+                    isOptionEqualToValue={(a, b) => a.id === b.id}
+                    loading={loadingProv}
+                    renderOption={(props, option) => (
+                        <li {...props} key={option.id}>
+                            {option.nombre}
+                        </li>
+                    )}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label="Provincia"
+                            required={required}
+                            InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                    <>
+                                        {loadingProv ? <CircularProgress size={20} /> : null}
+                                        {params.InputProps.endAdornment}
+                                    </>
+                                ),
+                            }}
+                        />
+                    )}
+                />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+                <Autocomplete
+                    options={localidades}
+                    value={loc}
+                    getOptionLabel={(o) => o?.nombre || ""}
+                    onChange={(_e, val) => setLoc(val)}
+                    isOptionEqualToValue={(a, b) => a.id === b.id}
+                    loading={loadingLoc}
+                    disabled={!prov}
+                    renderOption={(props, option) => (
+                        <li {...props} key={option.id}>
+                            {option.nombre}
+                        </li>
+                    )}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label="Localidad"
+                            required={required}
+                            InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                    <>
+                                        {loadingLoc ? <CircularProgress size={20} /> : null}
+                                        {params.InputProps.endAdornment}
+                                    </>
+                                ),
+                            }}
+                        />
+                    )}
+                />
+            </Grid>
+        </Grid>
     );
 }

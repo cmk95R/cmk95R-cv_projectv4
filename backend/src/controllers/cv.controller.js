@@ -50,6 +50,12 @@ function normalizePayload(body, file) {
       v = NIVELES.includes(val) ? val : ""; // inválido -> unset
     }
 
+    // El campo 'experiencia' es un array, no un valor simple.
+    // Si es un array vacío, lo eliminamos ($unset), si no, lo guardamos ($set).
+    if (k === "experiencia") {
+      v = Array.isArray(v) && v.length > 0 ? v : "";
+    }
+
     put(k, v);
   }
 

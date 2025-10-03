@@ -8,7 +8,7 @@ import "swiper/css";
 import "swiper/css/navigation"; // Si usas navegación
 import { Navigation, Autoplay } from "swiper/modules";
 
-import ApplicationDetailDialog from "../components/ModalSearches";
+import SearchDetailDialog from "../components/ModalSearches";
 
 
 const STATUS_COLORS = {
@@ -136,11 +136,11 @@ export default function PublicSearchesCarousel() {
             </Card>
           </SwiperSlide>
         ))}
-        <ApplicationDetailDialog
-  open={modalOpen}
-  onClose={() => setModalOpen(false)}
-  application={selectedSearch}
-/>
+        <SearchDetailDialog
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          application={selectedSearch}
+        />
       </Swiper>
     </Box>
 
