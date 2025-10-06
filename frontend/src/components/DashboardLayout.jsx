@@ -172,21 +172,22 @@ export default function DashboardLayout() {
             {open ? <ChevronLeftIcon /> : <MenuIcon />} {/* Cambia el icono si está abierto */}
           </IconButton>
 
-          <Typography
-            variant="h6"
-            noWrap
+          <Box
             component={Link}
             to="/"
-            color="inherit"
             sx={{
-              textDecoration: "none",
               flexGrow: 1,
-              fontWeight: 600,
-              color: theme.palette.common.white
+              display: 'flex',
+              alignItems: 'center',
+              textDecoration: "none",
             }}
           >
-            RECURSOS HUMANOS
-          </Typography>
+            {/* Reemplaza '/logo.png' con la ruta a tu logo */}
+            <Box component="img" src="/public/LOGOTIPO BLANCO.png" alt="3 HUMANOS Logo" sx={{
+              height: '35px', // Ajusta la altura según necesites
+              width: 'auto'
+            }} />
+          </Box>
 
           {!user ? (
             <Stack direction="row" spacing={1}>

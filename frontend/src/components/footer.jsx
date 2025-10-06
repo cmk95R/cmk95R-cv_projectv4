@@ -23,19 +23,18 @@ const Footer = () => {
           {/* Columna contacto */}
           <Grid item xs={12} sm={6} md={3}>
             <Typography variant="h6" gutterBottom>Contacto</Typography>
-            <Typography variant="body2">Av. Siempre Viva 742, CABA</Typography>
-            <Typography variant="body2">Tel: +54 11 1234-5678</Typography>
-            <Typography variant="body2">Email: rrhh@rrhh.com</Typography>
+            <Typography variant="body2">Congreso 2171 Piso 8° Of. A - (C1428BVE) </Typography>
+            <Typography variant="body2">Tel: +54 11 5367-8000</Typography>
+            <Typography variant="body2">Email: info@asytec.com</Typography>
           </Grid>
 
           {/* Columna redes sociales */}
           <Grid item xs={12} sm={6} md={3}>
             <Typography variant="h6" gutterBottom>Seguinos</Typography>
             <Stack direction="row" spacing={2}>
-              <IconButton color="inherit" href="https://linkedin.com" target="_blank"><LinkedInIcon /></IconButton>
-              <IconButton color="inherit" href="https://facebook.com" target="_blank"><FacebookIcon /></IconButton>
-              <IconButton color="inherit" href="https://twitter.com" target="_blank"><TwitterIcon /></IconButton>
-              <IconButton color="inherit" href="https://instagram.com" target="_blank"><InstagramIcon /></IconButton>
+              <IconButton color="inherit" href="https://www.linkedin.com/company/asytec/" target="_blank"><LinkedInIcon /></IconButton>
+              
+              <IconButton color="inherit" href="https://www.instagram.com/asytecsistemas/" target="_blank"><InstagramIcon /></IconButton>
             </Stack>
           </Grid>
         </Grid>
@@ -43,7 +42,7 @@ const Footer = () => {
         {/* Línea inferior */}
         <Box sx={{ textAlign: 'center', mt: 5, borderTop: '1px solid rgba(255,255,255,0.2)', pt: 3 }}>
           <Typography variant="body2" color="grey.400">
-            © {new Date().getFullYear()} RRHH. Todos los derechos reservados.
+            © {new Date().getFullYear()} ASYTEC Sistemas S.R.L.Todos los derechos reservados.
           </Typography>
         </Box>
       </Container>

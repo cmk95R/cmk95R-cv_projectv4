@@ -1,4 +1,4 @@
-.home-container {
+/* .home-container {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -48,11 +48,11 @@
 
 .home-buttons button:hover {
   background-color: #234cc0;
-}
+} */
 
 /* RESPONSIVE */
-@media (max-width: 768px) {
+/* @media (max-width: 768px) {
   .home-box {
     padding: 40px 30px;
   }
-}   
+}    */

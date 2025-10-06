@@ -168,9 +168,9 @@ const Home = () => {
 
       {/* ===== VALORES / CULTURA ===== */}
       <motion.section variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
-        <Container maxWidth="lg" sx={{ mb: 8 }}>
+        <Container maxWidth="lg" sx={{ mb: 8 }} >
           <Typography variant="h4" gutterBottom textAlign="center">Nuestros valores</Typography>
-          <Grid container spacing={3}>
+          <Grid container spacing={3} sx={{ display: { xs: "grid" , justifyContent: "space-around" , lg : "flex" }}}>
             {valores.map((v, i) => (
               <Grid item xs={12} sm={6} md={3} key={i}>
                 <motion.div variants={cardVariants} whileHover={{ y: -6 }}>
@@ -187,11 +187,15 @@ const Home = () => {
       </motion.section>
 
       {/* ===== CARROUSEL DE PUBLICACIONES ===== */}
-      <motion.section variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
-        <Container maxWidth="lg" sx={{ mb: 2 }}>
-        <PublicSearchesCarousel />
-        </Container>
-      </motion.section>
+      
+      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+        <motion.section variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
+          <Container maxWidth="lg" sx={{ mb: 2 }}>
+            <PublicSearchesCarousel />
+          </Container>
+        </motion.section>
+      </Box>
+      
 
 
       {/* ===== OPORTUNIDADES POR ÁREA ===== */}
@@ -205,7 +209,7 @@ const Home = () => {
           <Typography variant="h4" gutterBottom textAlign="center">
             Áreas de Oportunidad
           </Typography>
-          <Grid container spacing={3}>
+          <Grid container spacing={3} sx={{ display: { xs: "grid" , lg: "flex"}, justifyContent: "center"}}>
             {areas.map((a, i) => (
               <Grid item xs={12} sm={6} md={3} key={i}>
                 <motion.div variants={cardVariants} whileHover={{ y: -6, scale: 1.01 }}>
@@ -257,60 +261,7 @@ const Home = () => {
       </motion.section>
 
 
-      {/* ===== SECCIÓN: ¿Aceptás el desafío? (cards grandes con hover) ===== */}
-      {/* <Box sx={{ mb: 8 }}>
-        <Typography variant="h4" gutterBottom display={'flex'} justifyContent={'center'}>
-          ¿Aceptás el desafío?
-        </Typography>
-        <Grid container spacing={3} justifyContent="center">
-          {[
-            {
-              title: 'Crecé con nosotros',
-              text: 'Impulsamos tu desarrollo profesional con capacitaciones constantes.',
-              image: 'https://d19i1lccnoz5a9.cloudfront.net/img/article/importancia-de-la-administracion-del-recurso-humano.webp',
-            },
-            {
-              title: 'Desafíos reales',
-              text: 'Formá parte de proyectos reales que impactan en la industria.',
-              image: 'https://talentohumano.com.sv/wp-content/uploads/2023/05/director-de-Recursos-Humanos.png',
-            },
-            {
-              title: 'Equipo humano',
-              text: 'Trabajamos con personas que valoran el compromiso y la innovación.',
-              image: 'https://worldcampus.saintleo.edu/img/article/periodos-claves-de-la-historia-de-los-recursos-humanos.webp',
-            },
-          ].map((item, idx) => (
-            <Grid item xs={12} sm={6} md={4} key={idx} sx={{ display: 'flex', justifyContent: 'center' }}>
-              <motion.div initial="rest" whileHover="hover" animate="rest" style={{ width: 380 }}>
-                <Card sx={{ maxWidth: 380, borderRadius: 3, overflow: 'hidden', position: 'relative', boxShadow: 6 }}>
-                  <Box sx={{ position: 'relative', height: 280 }}>
-                    <motion.div variants={imgVariants} style={{ height: '100%' }}>
-                      <CardMedia component="img" height="280" image={item.image} alt={item.title} />
-                    </motion.div>
-                    <motion.div
-                      variants={overlayVariants}
-                      style={{
-                        position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end',
-                        background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.75) 100%)',
-                        padding: 20, pointerEvents: 'none',
-                      }}
-                    >
-                      <Box>
-                        <Typography variant="h6" sx={{ color: '#fff', fontWeight: 700, textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}>
-                          {item.title}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#f0f0f0', textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}>
-                          {item.text}
-                        </Typography>
-                      </Box>
-                    </motion.div>
-                  </Box>
-                </Card>
-              </motion.div>
-            </Grid>
-          ))}
-        </Grid>
-      </Box> */}
+
 
       {/* ===== TESTIMONIOS (carrusel simple) ===== */}
       <Container maxWidth="md" sx={{ mb: 8 }}>

@@ -39,7 +39,7 @@ export default function SocialLogin({ redirectTo }) {
                     Google
                 </Button>
 
-                <Button
+                {/* <Button
                     onClick={() => onOAuth("facebook")}
                     variant="outlined"
                     fullWidth
@@ -47,7 +47,7 @@ export default function SocialLogin({ redirectTo }) {
                     sx={{ py: 1.1, fontWeight: 600 }}
                 >
                     Facebook
-                </Button>
+                </Button> */}
             </Stack>
         </>
     );
