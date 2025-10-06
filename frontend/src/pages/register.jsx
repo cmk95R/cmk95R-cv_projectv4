@@ -167,7 +167,7 @@ export default function RegisterForm() {
           </Stack>
         </form>
 
-        <SocialLogin redirectTo="/" />
+        <SocialLogin />
 
         <Typography align="center" sx={{ mt: 2 }}>
           ¿Ya tenés una cuenta? <a href="/login">Iniciá sesión</a>

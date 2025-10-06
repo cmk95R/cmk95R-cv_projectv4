@@ -1,6 +1,9 @@
 import React from "react";
 import { Button, Divider, Stack } from "@mui/material";
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+
+const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/";
 
 
 const GoogleIcon = (props) => (
@@ -20,12 +23,16 @@ const FacebookIcon = (props) => (
 
 export default function SocialLogin({ redirectTo }) {
     const onOAuth = (provider) => {
-        const url = `${API_URL}/auth/${provider}?redirectTo=${encodeURIComponent(window.location.origin + redirectTo)}`;
+        // Pasamos redirectTo para que el backend pueda redirigirnos luego del callback
+        if (!API_URL) return alert("Falta VITE_API_URL en el .env del front");
+        // usamos 'state' para transportar redirectTo
+        const url = `${API_URL}/auth/${provider}?state=${encodeURIComponent(redirectTo)}`;
         window.location.href = url;
     };
 
     return (
         <>
+            {/* --- Social logins --- */}
             <Divider sx={{ my: 3 }}>o continúa con</Divider>
 
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
