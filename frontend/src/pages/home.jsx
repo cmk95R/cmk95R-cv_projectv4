@@ -118,7 +118,7 @@ const Home = () => {
   }, []);
 
   return (
-    <Box sx={{ backgroundColor: '#f4f6f8', py: 4 }}>
+    <Box sx={{ backgroundColor: '#f4f6f8'}}>
 
       {/* ===== HERO con animaciones ===== */}
       <Box

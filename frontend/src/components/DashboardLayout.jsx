@@ -312,7 +312,7 @@ export default function DashboardLayout() {
       </Drawer>
       {/* === FIN MODIFICACIÓN CLAVE PARA EL HOVER DEL DRAWER === */}
 
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Box component="main" sx={{ flexGrow: 1 }}>
         <DrawerHeader />
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <Outlet />

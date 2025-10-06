@@ -42,7 +42,7 @@ const Footer = () => {
         {/* Línea inferior */}
         <Box sx={{ textAlign: 'center', mt: 5, borderTop: '1px solid rgba(255,255,255,0.2)', pt: 3 }}>
           <Typography variant="body2" color="grey.400">
-            © {new Date().getFullYear()} ASYTEC Sistemas S.R.L.Todos los derechos reservados.
+            © 2026 ASYTEC Sistemas S.R.L.Todos los derechos reservados.
           </Typography>
         </Box>
       </Container>
