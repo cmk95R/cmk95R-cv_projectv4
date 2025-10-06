@@ -71,7 +71,7 @@ const cardVariants = {
 
 // ===== Datos =====
 const valores = [
-  { icon: LightbulbIcon, title: 'Innovación', text: 'Experimentamos, prototipamos y aprendemos rápido.' },
+  { icon: LightbulbIcon, title: 'Innovación', text: 'Experimentamos y aprendemos rápido.' },
   { icon: SchoolIcon, title: 'Aprendizaje', text: 'Capacitación continua y mentorías internas.' },
 
   { icon: FavoriteIcon, title: 'Compromiso', text: 'Cercanía con las personas y foco en resultados.' },
@@ -168,13 +168,13 @@ const Home = () => {
 
       {/* ===== VALORES / CULTURA ===== */}
       <motion.section variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
-        <Container maxWidth="lg" sx={{ mb: 8 }} >
+        <Container maxWidth="lg" sx={{ mb: 8 , justifyItems: "center"}} >
           <Typography variant="h4" gutterBottom textAlign="center">Nuestros valores</Typography>
-          <Grid container spacing={3} sx={{ display: { xs: "grid" , justifyContent: "space-around" , lg : "flex" }}}>
+          <Grid container spacing={3} sx={{ display: { xs: "grid" , width: "max-content",justifyContent: "space-around" , lg : "flex" }}}>
             {valores.map((v, i) => (
               <Grid item xs={12} sm={6} md={3} key={i}>
                 <motion.div variants={cardVariants} whileHover={{ y: -6 }}>
-                  <Card sx={{ p: 3, textAlign: 'center', borderRadius: 3, boxShadow: 3 }}>
+                  <Card sx={{ p: 3, textAlign: 'center', borderRadius: 3, boxShadow: 3,width: "360px" }} >
                     <v.icon sx={{ fontSize: 60, mb: 1, color: 'primary.main' }} />
                     <Typography variant="h6" gutterBottom>{v.title}</Typography>
                     <Typography variant="body2" color="text.secondary">{v.text}</Typography>
@@ -188,7 +188,7 @@ const Home = () => {
 
       {/* ===== CARROUSEL DE PUBLICACIONES ===== */}
       
-      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+      <Box sx={{ display: { xs: 'none', md: 'flex', justifyContent: 'center'} }}>
         <motion.section variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
           <Container maxWidth="lg" sx={{ mb: 2 }}>
             <PublicSearchesCarousel />
@@ -215,6 +215,7 @@ const Home = () => {
                 <motion.div variants={cardVariants} whileHover={{ y: -6, scale: 1.01 }}>
                   <Card
                     sx={{
+                      width: "250px",
                       borderRadius: 3,
                       overflow: "hidden",
                       boxShadow: 4,

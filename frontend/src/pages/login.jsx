@@ -13,6 +13,8 @@ import {
   InputAdornment,
   Divider
 } from "@mui/material";
+import SocialLogin from "../components/socialLogin";
+
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { loginApi } from "../api/auth";
@@ -144,28 +146,9 @@ export default function Login() {
           </Button>
 
           {/* --- Social logins --- */}
-          <Divider sx={{ my: 3 }}>o continúa con</Divider>
+          
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-            <Button
-              onClick={() => onOAuth("google")}
-              variant="outlined"
-              fullWidth
-              startIcon={<GoogleIcon />}
-              sx={{ py: 1.1, fontWeight: 600 }}
-            >
-              Google
-            </Button>
-            <Button
-              onClick={() => onOAuth("facebook")}
-              variant="outlined"
-              fullWidth
-              startIcon={<FacebookIcon />}
-              sx={{ py: 1.1, fontWeight: 600 }}
-            >
-              Facebook
-            </Button>
-          </Stack>
+          <SocialLogin />
 
           <Typography align="center" sx={{ mt: 2 }}>
             ¿No tenés cuenta? <a href="/register">Registrate</a>
