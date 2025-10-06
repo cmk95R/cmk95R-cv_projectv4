@@ -183,7 +183,7 @@ export default function DashboardLayout() {
             }}
           >
             {/* Reemplaza '/logo.png' con la ruta a tu logo */}
-            <Box component="img" src="/public/LOGOTIPO BLANCO.png" alt="3 HUMANOS Logo" sx={{
+            <Box component="img" src="/logo_blanco.png" alt="rrhh-logo" sx={{
               height: '35px', // Ajusta la altura según necesites
               width: 'auto'
             }} />
