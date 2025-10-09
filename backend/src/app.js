@@ -2,8 +2,12 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import session from "express-session";
+import passport from "passport";
+
 import connectDB from "./db/db.js";
 import * as XLSX from "xlsx";
+
 // rutas
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -11,32 +15,43 @@ import cvRoutes from "./routes/cvRoutes.js";
 import adminSearchesRoutes from "./routes/adminSearches.routes.js";
 import searchesRoutes from "./routes/searches.routes.js";
 import applicationsRoutes from "./routes/applications.routes.js";
-import passport from "passport";
+
+// Passport (Google)
 import { initGooglePassport } from "./auth/google.strategy.js";
 
-
 dotenv.config();
+
 const app = express();
+const IS_PROD = process.env.NODE_ENV === "production";
+
+// ***** PROXY/HTTPS detrás de Nginx *****
+app.set("trust proxy", IS_PROD ? 1 : 0);
+
 /* ========== Middlewares ========== */
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// CORS: Vercel prod + previews + localhost
-const allowList = new Set([
-  "http://localhost:5173",
-  "https://cmk95-r-cv-projectv4-9xdl4b08v-cristians-projects-76345bd6.vercel.app",
+// ***** CORS: permitir tu dominio en prod y localhost en dev *****
+const ALLOWLIST = new Set([
+  "https://rrhh.asytec.ar", // prod
+  "http://localhost:5173",  // dev (Vite)
+  // "https://*.vercel.app"  // si realmente lo usás, ver patrón abajo
 ]);
 
 app.use(
   cors({
     origin(origin, cb) {
-      if (!origin) return cb(null, true); // healthchecks / curl
+      if (!origin) return cb(null, true); // healthchecks / curl / server2server
       try {
-        const { hostname } = new URL(origin);
-        const ok = allowList.has(origin) || hostname.endsWith(".vercel.app");
-        // log de debug (borralo luego)
-        console.log("[CORS] Origin:", origin, "=>", ok ? "OK" : "BLOCK");
-        return cb(ok ? null : new Error("CORS not allowed"), ok);
+        // permitir comodín *.vercel.app si lo necesitás:
+        const allowVercelWildcard =
+          /\.vercel\.app$/i.test(new URL(origin).hostname);
+
+        const ok = ALLOWLIST.has(origin) || allowVercelWildcard;
+        if (ok) return cb(null, true);
+
+        console.log("[CORS] Origin bloqueado:", origin);
+        return cb(new Error("CORS not allowed"));
       } catch {
         return cb(new Error("CORS not allowed"));
       }
@@ -47,12 +62,29 @@ app.use(
   })
 );
 
-// Responder preflight
+// Preflight
 app.options("*", cors());
 
-// Google OAuth (sin sesiones)
+/* ===== Sesión (necesaria para Google OAuth/`state`) ===== */
+if (!process.env.SESSION_SECRET) {
+  console.warn("⚠️ Falta SESSION_SECRET en .env");
+}
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "cambia-esto-en-.env",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: IS_PROD, // HTTPS en prod
+      sameSite: "lax",
+    },
+  })
+);
+
+/* ===== Passport ===== */
 initGooglePassport();
 app.use(passport.initialize());
+app.use(passport.session());
 
 /* ========== Healthcheck ========== */
 app.get("/health", (_req, res) => {
@@ -64,14 +96,15 @@ app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/cv", cvRoutes);
 app.use("/", adminSearchesRoutes); // expone /admin/searches
-app.use("/", searchesRoutes);    
+app.use("/", searchesRoutes);
 app.use("/", applicationsRoutes);
 
-
+// 404
 app.use((req, res) => {
   res.status(404).json({ message: "Ruta no encontrada" });
 });
 
+// Error handler
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res
@@ -79,8 +112,8 @@ app.use((err, req, res, next) => {
     .json({ message: err.message || "Error interno del servidor" });
 });
 
-/* ========== Mongo Atlas + Server ========== */
-const PORT = process.env.PORT || 4000;
+/* ========== Mongo + Server ========== */
+const PORT = process.env.PORT || (IS_PROD ? 4000 : 3000);
 
 connectDB()
   .then(() => {
@@ -92,3 +125,5 @@ connectDB()
     console.error("❌ Error conectando a MongoDB:", err?.message || err);
     process.exit(1);
   });
+
+export default app;

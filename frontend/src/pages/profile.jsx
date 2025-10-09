@@ -4,6 +4,7 @@ import {
   Button, TextField, MenuItem, Stack, Snackbar, Alert, Skeleton,
   Stepper, Step, StepLabel, CircularProgress, Fade, IconButton // Añadido IconButton
 } from "@mui/material";
+import { styled } from '@mui/material/styles';
 import {
   ArrowBack as ArrowBackIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
@@ -12,7 +13,8 @@ import {
   School as SchoolIcon,
   Work as WorkIcon,
   Add as AddIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  CloudUpload as CloudUploadIcon
 } from "@mui/icons-material";
 
 // APIs (asumidos)
@@ -22,11 +24,24 @@ import DireccionAR from "../components/DireccionAR";
 
 // Constantes (sin cambios)
 const nivelesAcademicos = [
-    "Secundario completo", "Secundario incompleto", "Terciario/Técnico en curso",
-    "Terciario/Técnico completo", "Universitario en curso", "Universitario completo",
-    "Posgrado en curso", "Posgrado completo",
+  "Secundario completo", "Secundario incompleto", "Terciario/Técnico en curso",
+  "Terciario/Técnico completo", "Universitario en curso", "Universitario completo",
+  "Posgrado en curso", "Posgrado completo",
 ];
-const steps = ['Datos Personales', 'Contacto y Ubicación', 'Educación', 'Experiencia Laboral', 'Revisar y Guardar'];
+const steps = ['Datos Personales', 'Contacto y Ubicación', 'Educación', 'Experiencia Laboral', 'Adjuntar CV', 'Revisar y Guardar'];
+
+// Componente de estilo para el input de archivo oculto (de la documentación de MUI)
+const VisuallyHiddenInput = styled('input')({
+  clip: 'rect(0 0 0 0)',
+  clipPath: 'inset(50%)',
+  height: 1,
+  overflow: 'hidden',
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  whiteSpace: 'nowrap',
+  width: 1,
+});
 
 // --- Componente principal (con cambios en el manejo de estado) ---
 export default function ProfileWizard() {
@@ -68,7 +83,7 @@ export default function ProfileWizard() {
   const handleDataChange = (field, value) => {
     setCvData(prevData => ({ ...prevData, [field]: value }));
   };
-  
+
   // **NUEVO: Función específica para manejar el cambio de dirección**
   const handleDireccionChange = useCallback((dir) => {
     // `dir` viene de DireccionAR como { provincia: {id, nombre}, localidad: {id, nombre} }
@@ -77,12 +92,12 @@ export default function ProfileWizard() {
 
   // **CAMBIO #2: Función para manejar cambios en la lista de experiencias**
   const handleExperienceChange = (newExperiences) => {
-    setCvData(prevData => ({...prevData, experiencia: newExperiences}));
+    setCvData(prevData => ({ ...prevData, experiencia: newExperiences }));
   };
 
   const handleSaveStep = async () => {
     setIsSavingStep(true);
-    try { 
+    try {
       // Preparamos los datos para el backend.
       // El backend del CV ahora entiende el objeto 'direccion' si los campos están en ALLOWED_FIELDS.
       // Ajustamos el payload para que coincida con el modelo de CV.
@@ -106,7 +121,7 @@ export default function ProfileWizard() {
       setIsSavingStep(false);
     }
   };
-  
+
   // El resto de los handlers (handleNext, handleBack, handleFinalSave) no necesitan cambios
 
   const handleNext = () => setActiveStep(p => p + 1);
@@ -147,6 +162,8 @@ export default function ProfileWizard() {
       case 3:
         return <ExperienceForm data={cvData.experiencia || []} onChange={handleExperienceChange} onSave={handleSaveStep} isSaving={isSavingStep} />;
       case 4:
+        return <UploadCV data={cvData} onChange={handleDataChange} onSave={handleSaveStep} isSaving={isSavingStep} />;
+      case 5:
         return <ReviewAndSaveForm data={cvData} onFinalSave={handleFinalSave} isSaving={isSavingStep} />;
       default:
         return 'Paso desconocido';
@@ -209,12 +226,12 @@ const PersonalForm = ({ data, onChange, onSave, isSaving }) => {
           {isSaving ? <CircularProgress size={24} /> : 'Guardar y Continuar'}
         </Button>
         {(data.nombre || data.apellido || data.nacimiento || data.perfil) && (
-            <Card variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
-                <Typography variant="subtitle2" fontWeight="bold">Información guardada:</Typography>
-                <Typography>Nombre: {data.nombre || ''} {data.apellido || ''}</Typography>
-                <Typography>Nacimiento: {data.nacimiento ? new Date(data.nacimiento).toLocaleDateString() : 'No especificado'}</Typography>
-                <Typography>Resumen: {data.perfil || 'No especificado'}</Typography>
-            </Card>
+          <Card variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
+            <Typography variant="subtitle2" fontWeight="bold">Información guardada:</Typography>
+            <Typography>Nombre: {data.nombre || ''} {data.apellido || ''}</Typography>
+            <Typography>Nacimiento: {data.nacimiento ? new Date(data.nacimiento).toLocaleDateString() : 'No especificado'}</Typography>
+            <Typography>Resumen: {data.perfil || 'No especificado'}</Typography>
+          </Card>
         )}
       </Stack>
     </Fade>
@@ -243,13 +260,13 @@ const ContactLocationForm = ({ data, onFieldChange, onDireccionChange, onSave, i
           {isSaving ? <CircularProgress size={24} /> : 'Guardar y Continuar'}
         </Button>
         {(data.email || data.telefono || data.linkedin || data.direccion?.provincia) && (
-            <Card variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
-                <Typography variant="subtitle2" fontWeight="bold">Información guardada:</Typography>
-                <Typography>Email: {data.email || 'No especificado'}</Typography>
-                <Typography>Teléfono: {data.telefono || 'No especificado'}</Typography>
-                <Typography>LinkedIn: {data.linkedin || 'No especificado'}</Typography>
-                <Typography>Ubicación: {data.direccion?.localidad?.nombre || ''}{data.direccion?.provincia?.nombre ? `, ${data.direccion.provincia.nombre}` : ''}</Typography>
-            </Card>
+          <Card variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
+            <Typography variant="subtitle2" fontWeight="bold">Información guardada:</Typography>
+            <Typography>Email: {data.email || 'No especificado'}</Typography>
+            <Typography>Teléfono: {data.telefono || 'No especificado'}</Typography>
+            <Typography>LinkedIn: {data.linkedin || 'No especificado'}</Typography>
+            <Typography>Ubicación: {data.direccion?.localidad?.nombre || ''}{data.direccion?.provincia?.nombre ? `, ${data.direccion.provincia.nombre}` : ''}</Typography>
+          </Card>
         )}
       </Stack>
     </Fade>
@@ -257,32 +274,32 @@ const ContactLocationForm = ({ data, onFieldChange, onDireccionChange, onSave, i
 };
 
 const EducationForm = ({ data, onChange, onSave, isSaving }) => {
-    return (
-        <Fade in={true}>
-            <Stack spacing={3}>
-                <Typography variant="h6" gutterBottom>Tu Trayectoria Académica</Typography>
-                <TextField select fullWidth label="Máximo nivel académico" value={data.nivelAcademico || ''} onChange={e => onChange('nivelAcademico', e.target.value)}>
-                    {nivelesAcademicos.map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
-                </TextField>
-                <TextField fullWidth label="Institución Educativa" value={data.institucion || ''} onChange={e => onChange('institucion', e.target.value)} />
-                <Grid container spacing={2}>
-                    <Grid item xs={6}><TextField type="date" fullWidth label="Fecha de Inicio" value={String(data.periodoEduDesde || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => onChange('periodoEduDesde', e.target.value)} /></Grid>
-                    <Grid item xs={6}><TextField type="date" fullWidth label="Fecha de Fin" value={String(data.periodoEduHasta || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => onChange('periodoEduHasta', e.target.value)} /></Grid>
-                </Grid>
-                <Button variant="outlined" onClick={onSave} disabled={isSaving} sx={{ alignSelf: 'flex-end' }}>
-                    {isSaving ? <CircularProgress size={24} /> : 'Guardar y Continuar'}
-                </Button>
-                {data.nivelAcademico && (
-                    <Card variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
-                        <Typography variant="subtitle2" fontWeight="bold">Información guardada:</Typography>
-                        <Typography>Nivel: {data.nivelAcademico}</Typography>
-                        <Typography>Institución: {data.institucion || 'No especificada'}</Typography>
-                        <Typography>Período: {data.periodoEduDesde ? new Date(data.periodoEduDesde).toLocaleDateString() : '...'} - {data.periodoEduHasta ? new Date(data.periodoEduHasta).toLocaleDateString() : '...'}</Typography>
-                    </Card>
-                )}
-            </Stack>
-        </Fade>
-    );
+  return (
+    <Fade in={true}>
+      <Stack spacing={3}>
+        <Typography variant="h6" gutterBottom>Tu Trayectoria Académica</Typography>
+        <TextField select fullWidth label="Máximo nivel académico" value={data.nivelAcademico || ''} onChange={e => onChange('nivelAcademico', e.target.value)}>
+          {nivelesAcademicos.map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+        </TextField>
+        <TextField fullWidth label="Institución Educativa" value={data.institucion || ''} onChange={e => onChange('institucion', e.target.value)} />
+        <Grid container spacing={2}>
+          <Grid item xs={6}><TextField type="date" fullWidth label="Fecha de Inicio" value={String(data.periodoEduDesde || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => onChange('periodoEduDesde', e.target.value)} /></Grid>
+          <Grid item xs={6}><TextField type="date" fullWidth label="Fecha de Fin" value={String(data.periodoEduHasta || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => onChange('periodoEduHasta', e.target.value)} /></Grid>
+        </Grid>
+        <Button variant="outlined" onClick={onSave} disabled={isSaving} sx={{ alignSelf: 'flex-end' }}>
+          {isSaving ? <CircularProgress size={24} /> : 'Guardar y Continuar'}
+        </Button>
+        {data.nivelAcademico && (
+          <Card variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
+            <Typography variant="subtitle2" fontWeight="bold">Información guardada:</Typography>
+            <Typography>Nivel: {data.nivelAcademico}</Typography>
+            <Typography>Institución: {data.institucion || 'No especificada'}</Typography>
+            <Typography>Período: {data.periodoEduDesde ? new Date(data.periodoEduDesde).toLocaleDateString() : '...'} - {data.periodoEduHasta ? new Date(data.periodoEduHasta).toLocaleDateString() : '...'}</Typography>
+          </Card>
+        )}
+      </Stack>
+    </Fade>
+  );
 };
 
 const ExperienceForm = ({ data, onChange, onSave, isSaving }) => {
@@ -337,44 +354,83 @@ const ExperienceForm = ({ data, onChange, onSave, isSaving }) => {
   );
 };
 
+const UploadCV = ({ data, onChange, onSave, isSaving }) => {
+  return (
+    <Fade in={true}>
+      <Stack spacing={3}>
+        <Typography variant="h6" gutterBottom>Sube tu CV (PDF)</Typography>
+        <Button
+          component="label"
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          startIcon={<CloudUploadIcon />}
+          sx={{ alignSelf: 'flex-start' }}
+        >
+          Seleccionar archivo
+          <VisuallyHiddenInput
+            type="file"
+            accept=".pdf"
+            onChange={e => onChange('cvFile', e.target.files[0])}
+          />
+        </Button>
+        {data.cvFile && (
+          <Card variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
+            <Typography variant="subtitle2" fontWeight="bold">Archivo seleccionado:</Typography>
+            <Typography>{data.cvFile.name}</Typography>
+          </Card>
+        )}
+        <Button variant="outlined" onClick={onSave} disabled={isSaving || !data.cvFile} sx={{ alignSelf: 'flex-end' }}>
+          {isSaving ? <CircularProgress size={24} /> : 'Guardar y Continuar'}
+        </Button>
+      </Stack>
+    </Fade>
+  );
+};
+
 // El componente ReviewAndSaveForm no necesita cambios, ya que solo muestra datos.
 const ReviewAndSaveForm = ({ data, onFinalSave, isSaving }) => (
-    <Fade in={true}>
-        <Stack spacing={3}>
-            <Typography variant="h6" gutterBottom>Revisa tu Perfil</Typography>
-            {/* ...cuerpo del componente sin cambios... */}
-            <Card variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight="bold">Datos Personales:</Typography>
-                <Typography>Nombre: {data.nombre || '—'} {data.apellido || ''}</Typography>
-                <Typography>Nacimiento: {data.nacimiento ? new Date(data.nacimiento).toLocaleDateString() : '—'}</Typography>
-                <Typography>Resumen: {data.perfil || '—'}</Typography>
-            </Card>
-            <Card variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight="bold">Contacto y Ubicación:</Typography>
-                <Typography>Email: {data.email || '—'}</Typography>
-                <Typography>Teléfono: {data.telefono || '—'}</Typography>
-                <Typography>LinkedIn: {data.linkedin || '—'}</Typography>
-                <Typography>Ubicación: {`${data.localidad || ''}${data.provincia ? ', ' + data.provincia : ''}${data.pais ? ', ' + data.pais : ''}` || '—'}</Typography>
-            </Card>
-            <Card variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight="bold">Educación:</Typography>
-                <Typography>Nivel: {data.nivelAcademico || '—'}</Typography>
-                <Typography>Institución: {data.institucion || '—'}</Typography>
-            </Card>
-            <Card variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight="bold">Experiencia Laboral:</Typography>
-                {data.experiencia?.length ? data.experiencia.map((exp, idx) => (
-                <Box key={idx} sx={{ ml: 2, mt: 1 }}>
-                    <Typography fontWeight="medium">{exp.puesto} en {exp.empresa}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        {exp.desde ? new Date(exp.desde).toLocaleDateString() : '—'} - {exp.hasta ? new Date(exp.hasta).toLocaleDateString() : '—'}
-                    </Typography>
-                </Box>
-                )) : <Typography>Sin experiencia registrada.</Typography>}
-            </Card>
-            <Button variant="contained" color="primary" onClick={onFinalSave} disabled={isSaving} startIcon={<CheckCircleOutlineIcon />} sx={{ alignSelf: 'flex-end' }}>
-                {isSaving ? <CircularProgress size={24} /> : 'Confirmar y Guardar Todo'}
-            </Button>
-        </Stack>
-    </Fade>
+  <Fade in={true}>
+    <Stack spacing={3}>
+      <Typography variant="h6" gutterBottom>Revisa tu Perfil</Typography>
+      {/* ...cuerpo del componente sin cambios... */}
+      <Card variant="outlined" sx={{ p: 2 }}>
+        <Typography variant="subtitle1" fontWeight="bold">Datos Personales:</Typography>
+        <Typography>Nombre: {data.nombre || '—'} {data.apellido || ''}</Typography>
+        <Typography>Nacimiento: {data.nacimiento ? new Date(data.nacimiento).toLocaleDateString() : '—'}</Typography>
+        <Typography>Resumen: {data.perfil || '—'}</Typography>
+      </Card>
+      <Card variant="outlined" sx={{ p: 2 }}>
+        <Typography variant="subtitle1" fontWeight="bold">Contacto y Ubicación:</Typography>
+        <Typography>Email: {data.email || '—'}</Typography>
+        <Typography>Teléfono: {data.telefono || '—'}</Typography>
+        <Typography>LinkedIn: {data.linkedin || '—'}</Typography>
+        <Typography>Ubicación: {`${data.localidad || ''}${data.provincia ? ', ' + data.provincia : ''}${data.pais ? ', ' + data.pais : ''}` || '—'}</Typography>
+      </Card>
+      <Card variant="outlined" sx={{ p: 2 }}>
+        <Typography variant="subtitle1" fontWeight="bold">Educación:</Typography>
+        <Typography>Nivel: {data.nivelAcademico || '—'}</Typography>
+        <Typography>Institución: {data.institucion || '—'}</Typography>
+      </Card>
+      <Card variant="outlined" sx={{ p: 2 }}>
+        <Typography variant="subtitle1" fontWeight="bold">Experiencia Laboral:</Typography>
+        {data.experiencia?.length ? data.experiencia.map((exp, idx) => (
+          <Box key={idx} sx={{ ml: 2, mt: 1 }}>
+            <Typography fontWeight="medium">{exp.puesto} en {exp.empresa}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {exp.desde ? new Date(exp.desde).toLocaleDateString() : '—'} - {exp.hasta ? new Date(exp.hasta).toLocaleDateString() : '—'}
+            </Typography>
+          </Box>
+        )) : <Typography>Sin experiencia registrada.</Typography>}
+      </Card>
+
+      <Card variant="outlined" sx={{ p: 2 }}>
+        <Typography variant="subtitle1" fontWeight="bold">CV Adjunto:</Typography>
+        <Typography>{data.cvFile ? data.cvFile.name : 'Sin CV cargado.'}</Typography>
+      </Card>
+      <Button variant="contained" color="primary" onClick={onFinalSave} disabled={isSaving} startIcon={<CheckCircleOutlineIcon />} sx={{ alignSelf: 'flex-end' }}>
+        {isSaving ? <CircularProgress size={24} /> : 'Confirmar y Guardar Todo'}
+      </Button>
+    </Stack>
+  </Fade>
 );
