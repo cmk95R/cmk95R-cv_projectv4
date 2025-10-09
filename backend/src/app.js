@@ -33,17 +33,17 @@ app.use(express.urlencoded({ extended: true }));
 
 // ***** CORS: permitir tu dominio en prod y localhost en dev *****
 const ALLOWLIST = new Set([
-  "https://rrhh.asytec.ar", // prod
-  "http://localhost:5173",  // dev (Vite)
-  // "https://*.vercel.app"  // si realmente lo usás, ver patrón abajo
+  "https://rrhh.asytec.ar", 
+  "http://localhost:5173",  
+
 ]);
 
 app.use(
   cors({
     origin(origin, cb) {
-      if (!origin) return cb(null, true); // healthchecks / curl / server2server
+      if (!origin) return cb(null, true); 
       try {
-        // permitir comodín *.vercel.app si lo necesitás:
+
         const allowVercelWildcard =
           /\.vercel\.app$/i.test(new URL(origin).hostname);
 
@@ -75,7 +75,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: IS_PROD, // HTTPS en prod
+      secure: IS_PROD, 
       sameSite: "lax",
     },
   })
@@ -95,7 +95,7 @@ app.get("/health", (_req, res) => {
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/cv", cvRoutes);
-app.use("/", adminSearchesRoutes); // expone /admin/searches
+app.use("/", adminSearchesRoutes); 
 app.use("/", searchesRoutes);
 app.use("/", applicationsRoutes);
 
