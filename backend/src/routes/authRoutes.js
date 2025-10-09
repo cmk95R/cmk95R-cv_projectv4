@@ -16,16 +16,11 @@ router.get(
 );
 
 router.get(
-  "/google/callback",
-  passport.authenticate("google", {
-    session: false,
-    failureRedirect: `${process.env.FRONTEND_URL}/login?error=google`,
-  }),
+  '/google/callback',
+  passport.authenticate('google', { failureRedirect: '/login?error=oauth' }),
   (req, res) => {
-    const token = req.user?.token; // viene del strategy
-    const url = new URL(`${process.env.FRONTEND_URL}/login/sso`);
-    url.searchParams.set("token", token);
-    return res.redirect(url.toString());
+    
+    return res.redirect('/');
   }
 );
 
