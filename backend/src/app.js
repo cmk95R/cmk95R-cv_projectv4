@@ -1,14 +1,14 @@
-// src/app.js
+// backend/src/app.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import session from "express-session";
 import passport from "passport";
+import cookieParser from "cookie-parser";
 
 import connectDB from "./db/db.js";
-import * as XLSX from "xlsx";
 
-// rutas
+// Rutas
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import cvRoutes from "./routes/cvRoutes.js";
@@ -30,41 +30,29 @@ app.set("trust proxy", IS_PROD ? 1 : 0);
 /* ===== Parsers ===== */
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 /* ===== CORS =====
-   - Prod: permite https://rrhh.asytec.ar
-   - Dev:  permite http://localhost:5173
-   - (Opcional) *.vercel.app
+   - En producción (mismo dominio) NO hace falta CORS.
+   - En desarrollo permitimos http://localhost:5173 (Vite) con credenciales.
 */
-const ALLOWLIST = new Set([
-  (process.env.ORIGIN || "https://rrhh.asytec.ar").replace(/\/+$/, ""),
-  "http://localhost:5173",
-]);
-
-app.use(
-  cors({
-    origin(origin, cb) {
-      if (!origin) return cb(null, true);
-      try {
-        const norm = origin.replace(/\/+$/, "");
-        const allowVercel = /\.vercel\.app$/i.test(new URL(norm).hostname);
-        if (ALLOWLIST.has(norm) || allowVercel) return cb(null, true);
-        console.log("[CORS] Origin bloqueado:", origin);
+if (!IS_PROD) {
+  app.use(
+    cors({
+      origin(origin, cb) {
+        if (!origin) return cb(null, true);
+        if (origin === "http://localhost:5173") return cb(null, true);
         return cb(new Error("CORS not allowed"));
-      } catch {
-        return cb(new Error("CORS not allowed"));
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+      },
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    })
+  );
+  app.options("*", (req, res) => res.sendStatus(204));
+}
 
-// Preflight
-app.options("*", (req, res) => res.sendStatus(204));
-
-/* ===== Sesión (requerida para Google OAuth/state) ===== */
+/* ===== Sesión (necesaria para el 'state' de OAuth) ===== */
 if (!process.env.SESSION_SECRET) {
   console.warn("⚠️ Falta SESSION_SECRET en .env");
 }
@@ -72,9 +60,9 @@ app.use(
   session({
     secret: process.env.SESSION_SECRET || "cambia-esto-en-.env",
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: false, // Cambiado a false, no necesitas guardar sesiones vacías
     cookie: {
-      secure: IS_PROD, 
+      secure: IS_PROD,
       sameSite: "lax",
     },
   })
@@ -82,15 +70,14 @@ app.use(
 
 /* ===== Passport ===== */
 app.use(passport.initialize());
-app.use(passport.session());
-initGooglePassport(); 
+initGooglePassport();
 
 /* ===== Health ===== */
 app.get("/health", (_req, res) => {
   res.json({ ok: true, env: process.env.NODE_ENV || "dev" });
 });
 
-/* ===== Rutas ===== */
+/* ===== Rutas API ===== */
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/cv", cvRoutes);

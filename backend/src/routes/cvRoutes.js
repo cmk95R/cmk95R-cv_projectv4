@@ -1,15 +1,25 @@
+// src/routes/cvRoutes.js
+
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
-import { requireRole } from "../middleware/role.middleware.js"; // lo creamos abajo
-import { upsertMyCV, listAllCVs,getMyCV  } from "../controllers/cv.controller.js";
+import { requireRole } from "../middleware/role.middleware.js";
+// 1. IMPORTA TU MIDDLEWARE DE MULTER
+import upload from "../middleware/upload.middleware.js"; 
+import {
+  upsertMyCV,
+  listAllCVs,
+  getMyCV,
+} from "../controllers/cv.controller.js";
 
 const router = Router();
 
-// Usuario común carga/actualiza su propio CV
-router.post("/me", requireAuth, upsertMyCV);
+// 2. AÑADE EL MIDDLEWARE DE UPLOAD AQUÍ
+// El usuario carga/actualiza su propio CV. `upload.single("cvPdf")`
+// procesa el archivo del campo "cvPdf" antes de llegar al controlador.
+router.post("/me", requireAuth, upload.single("cvPdf"), upsertMyCV); // <-- ¡Aquí está la magia! 🚀
 
+// Estas rutas no cambian
 router.get("/me", requireAuth, getMyCV);
-// Admin: listar todos los CVs con datos del usuario
 router.get("/", requireAuth, requireRole("admin"), listAllCVs);
 
 export default router;
