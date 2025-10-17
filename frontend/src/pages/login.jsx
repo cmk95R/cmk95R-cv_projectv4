@@ -44,7 +44,7 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "", remember: false });
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
-
+  const [error, setError] = useState(""); 
   const API_URL = import.meta.env.VITE_API_URL || "";
 
   const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/";
@@ -57,13 +57,28 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(""); // <-- Limpia el error anterior en cada nuevo intento
+
     try {
       const { data } = await loginApi({ email: form.email, password: form.password });
+      
+      // Guarda el token y los datos del usuario
       localStorage.setItem("token", data.token);
       setUser(data.user);
-      navigate(redirectTo);
+
+      // --- 🔑 LÓGICA PARA LA REDIRECCIÓN BASADA EN ROL ---
+      if (data.user.rol === "admin") {
+        // Si el usuario es admin, lo redirige al dashboard de administrador
+        navigate("/admin/dashboard");
+      } else {
+        // Para usuarios normales, lo redirige a donde iba o a una página por defecto
+        navigate(redirectTo || "/my-applications");
+      }
+      
     } catch (err) {
-      alert(err?.response?.data?.message || "Error de autenticación");
+      // Usa el nuevo estado de error en lugar de alert()
+      const msg = err?.response?.data?.message || "Email o contraseña incorrectos.";
+      setError(msg);
     } finally {
       setLoading(false);
     }

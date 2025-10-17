@@ -8,8 +8,9 @@ import {
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DownloadIcon from "@mui/icons-material/Download";
 
-import { listApplicationsApi, updateApplicationApi } from "../api/applications";
+import { listApplicationsApi, updateApplicationApi, getApplicationCvDownloadUrlApi } from "../api/applications";
 
 // --- Constantes
 const APP_STATES = ["Enviada", "En revisión", "Preseleccionado", "Rechazado", "Contratado"];
@@ -153,24 +154,45 @@ function ApplicationsTable({ rows, onViewDetail, onChangeState }) {
 /* ================== Modal Detalle ================== */
 function ApplicationDetailDialog({ open, onClose, application }) {
   if (!application) return null;
-  const cv = application.cvSnapshot || {};
-  const search = application.search || {};
+  const cv = application?.cvSnapshot || {};
+  const search = application?.search || {};
+  // 1. Verificamos si existe un ID de archivo en el proveedor (OneDrive)
+  const cvProviderId = application?.cvSnapshot?.cvFile?.providerId;
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!application?._id) return;
+    setIsDownloading(true);
+    try {
+      // Llamamos a la API segura que nos devuelve la URL
+      const { data } = await getApplicationCvDownloadUrlApi(application._id);
+      if (data.downloadUrl) {
+        // Abrimos la URL en una nueva pestaña para iniciar la descarga
+        window.open(data.downloadUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      console.error("Error al obtener la URL de descarga:", error);
+      alert("No se pudo obtener el enlace de descarga.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Detalle de Postulación</DialogTitle>
       <DialogContent dividers>
         <Typography variant="caption" color="text.secondary">
-          {new Date(application.createdAt).toLocaleString()}
+          {new Date(application?.createdAt).toLocaleString()}
         </Typography>
 
         <Stack spacing={2} sx={{ mt: 2 }}>
           <div>
             <Typography variant="subtitle2">Estado</Typography>
             <Chip
-              label={application.state}
+              label={application?.state}
               size="small"
-              color={STATE_COLORS[application.state] || "default"}
+              color={STATE_COLORS[application?.state] || "default"}
               sx={{ mt: 0.5 }}
             />
           </div>
@@ -179,9 +201,9 @@ function ApplicationDetailDialog({ open, onClose, application }) {
             <Typography variant="subtitle2">Postulante</Typography>
             <Stack>
               <Typography>{cv.nombre} {cv.apellido}</Typography>
-              <Typography variant="body2">{cv.email}</Typography>
-              <Typography variant="body2">{cv.telefono}</Typography>
-              <Typography variant="body2">{cv.linkedin}</Typography>
+              <Typography variant="body2" color="text.secondary">{cv.email}</Typography>
+              <Typography variant="body2" color="text.secondary">{cv.telefono}</Typography>
+              <Typography variant="body2" color="text.secondary">{cv.linkedin}</Typography>
               <Typography variant="body2">
                 Área: {cv.areaInteres} · Nivel: {cv.nivelAcademico}
               </Typography>
@@ -198,16 +220,36 @@ function ApplicationDetailDialog({ open, onClose, application }) {
             </Stack>
           </div>
 
-          {application.message && (
+          {application?.message && (
             <div>
               <Typography variant="subtitle2">Mensaje del postulante</Typography>
-              <Typography variant="body2">{application.message}</Typography>
+              <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>{application.message}</Typography>
             </div>
           )}
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} variant="outlined">Cerrar</Button>
+        {/* 2. El botón ahora usa un handler onClick */}
+        {cvProviderId ? (
+          <Button
+            variant="contained"
+            startIcon={isDownloading ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
+            onClick={handleDownload}
+            disabled={isDownloading}
+          >
+            {isDownloading ? "Obteniendo..." : "Descargar CV"}
+          </Button>
+        ) : (
+          <Tooltip title="El postulante no adjuntó un archivo de CV en esta postulación.">
+            {/* El span es necesario para que el Tooltip funcione en un botón deshabilitado */}
+            <span>
+              <Button variant="contained" startIcon={<DownloadIcon />} disabled>
+                Descargar CV
+              </Button>
+            </span>
+          </Tooltip>
+        )}
       </DialogActions>
     </Dialog>
   );

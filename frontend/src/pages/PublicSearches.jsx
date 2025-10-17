@@ -25,6 +25,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { listPublicSearchesApi } from "../api/searches"; // <-- usa api/client.js por dentro
 import { applyToSearchApi } from "../api/applications"; // si aún no existe, créalo
 import { myApplicationsApi } from "../api/applications";
+import SearchDetailDialog from "../components/ModalSearches"; // 1. Importar el modal
 const STATUS_COLORS = {
   Activa: "success",
   Pausada: "warning",
@@ -43,6 +44,7 @@ export default function PublicSearches() {
   const [snack, setSnack] = useState({ open: false, severity: "success", msg: "" });
   const [applyingId, setApplyingId] = useState(null);
   const [appliedIds, setAppliedIds] = useState(() => new Set());
+  const [selectedSearch, setSelectedSearch] = useState(null); // 2. Estado para el modal
   
   const [selectedArea, setSelectedArea] = useState("Todas");
 
@@ -153,7 +155,7 @@ export default function PublicSearches() {
         />
         <Typography variant="body2">Búsquedas Activas</Typography>
         <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-        <Button
+        {/* <Button
           variant={filterType === "Todas" ? "contained" : "outlined"}
           onClick={() => setFilterType("Todas")}
           sx={{ textTransform: "none" }}
@@ -176,7 +178,7 @@ export default function PublicSearches() {
           disabled={showActive}
         >
           En Pausa
-        </Button>
+        </Button> */}
 
         {/* <Button variant="text" onClick={fetchData} sx={{ ml: "auto" }}>
           Actualizar
@@ -271,10 +273,8 @@ export default function PublicSearches() {
                   </Stack>
                   <IconButton
                     aria-label="detalle"
-                    onClick={() => {
-                      // si más adelante hacés la vista de detalle pública:
-                      // navigate(`/searches/${item.id}`);
-                    }}
+                    // 3. Abrir el modal al hacer clic
+                    onClick={() => setSelectedSearch(item)}
                   >
                     <ArrowForwardIosIcon fontSize="small" />
                   </IconButton>
@@ -285,6 +285,12 @@ export default function PublicSearches() {
         )}
       </Stack>
 
+      {/* 4. Renderizar el modal */}
+      <SearchDetailDialog
+        open={!!selectedSearch}
+        onClose={() => setSelectedSearch(null)}
+        application={{ search: selectedSearch }}
+      />
 
       <Snackbar
         open={snack.open}

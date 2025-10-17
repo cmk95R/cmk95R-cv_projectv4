@@ -53,3 +53,52 @@ export const uploadFileToOneDrive = async (fileBuffer, fileName, folderName = "C
         throw new Error("No se pudo subir el archivo.");
     }
 };
+/**
+ * Obtiene una URL de descarga temporal y pre-autenticada para un archivo en OneDrive.
+ * @param {string} fileId - El ID del archivo en Microsoft Graph (el que guardaste en la BD).
+ * @returns {Promise<string|null>} La URL de descarga o null si hay un error.
+ */
+export const getDownloadUrlForFile = async (fileId) => {
+  try {
+    const client = getAuthenticatedClient();
+    const { ONEDRIVE_USER_ID } = process.env;
+
+    // Hacemos una petición para obtener las propiedades del item,
+    // seleccionando específicamente la propiedad '@microsoft.graph.downloadUrl'
+    const response = await client
+      .api(`/users/${ONEDRIVE_USER_ID}/drive/items/${fileId}`)
+      .select("@microsoft.graph.downloadUrl")
+      .get();
+    
+    // La URL estará en esta propiedad especial
+    return response["@microsoft.graph.downloadUrl"];
+
+  } catch (error) {
+    console.error("Error al obtener la URL de descarga de OneDrive:", error);
+    return null;
+  }
+};
+
+/**
+ * Elimina un archivo de OneDrive usando su ID.
+ * @param {string} fileId - El ID del archivo en Microsoft Graph.
+ * @returns {Promise<boolean>} True si se eliminó, false si hubo un error.
+ */
+export const deleteFileFromOneDrive = async (fileId) => {
+  if (!fileId) return false;
+  try {
+    const client = getAuthenticatedClient();
+    const { ONEDRIVE_USER_ID } = process.env;
+
+    // La ruta en la API para eliminar un item por su ID
+    const deletePath = `/users/${ONEDRIVE_USER_ID}/drive/items/${fileId}`;
+
+    await client.api(deletePath).delete();
+    console.log(`Archivo con ID ${fileId} eliminado de OneDrive.`);
+    return true;
+  } catch (error) {
+    console.error(`Error al eliminar el archivo ${fileId} de OneDrive:`, error);
+    // No lanzamos un error para no interrumpir el flujo principal (la subida del nuevo CV ya fue exitosa)
+    return false;
+  }
+};

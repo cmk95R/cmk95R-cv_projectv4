@@ -22,9 +22,8 @@ function SearchDetailDialog({ open, onClose, application }) {
     const color = STATE_COLORS[estado] || "default";
 
     const handleApply = () => {
-        // Redirige a la página de login si no está logueado, o a la de postulación si lo está.
-        // Aquí asumimos que la lógica de postulación está en /searches o se maneja en el login.
-        navigate(`/searches`);
+        // Redirige a la página de detalle de la búsqueda específica
+        navigate(`/searches/${search._id}`);
         onClose();
     };
 
@@ -70,7 +69,7 @@ function SearchDetailDialog({ open, onClose, application }) {
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} variant="outlined">Cerrar</Button>
-                <Button onClick={handleApply} variant="contained" disabled={estado !== 'Activa'}>Postularme</Button>
+                
             </DialogActions>
         </Dialog>
     );

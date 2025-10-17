@@ -10,6 +10,8 @@ import {
   listAllCVs,
   getMyCV,
 } from "../controllers/cv.controller.js";
+import { downloadMyCv } from "../controllers/cv.controller.js";
+
 
 const router = Router();
 
@@ -21,5 +23,6 @@ router.post("/me", requireAuth, upload.single("cvPdf"), upsertMyCV); // <-- ¡Aq
 // Estas rutas no cambian
 router.get("/me", requireAuth, getMyCV);
 router.get("/", requireAuth, requireRole("admin"), listAllCVs);
-
+// Ruta para que el usuario descargue su propio CV
+router.get("/me/download", requireAuth, downloadMyCv);
 export default router;

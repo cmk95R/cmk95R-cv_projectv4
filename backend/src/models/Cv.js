@@ -18,6 +18,14 @@ const experienciaSchema = new mongoose.Schema({
   hasta: { type: Date },
 }, { _id: false });
 
+const educacionSchema = new mongoose.Schema({
+  nivelAcademico: { type: String, enum: NIVELES, set: sanitizeEmpty },
+  carrera: { type: String, trim: true },
+  institucion: { type: String, trim: true },
+  desde: { type: Date },
+  hasta: { type: Date },
+}, { _id: false });
+
 
 const cvSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", unique: true, required: true },
@@ -42,25 +50,16 @@ const cvSchema = new mongoose.Schema({
     set: sanitizeEmpty
   },
 
-  nivelAcademico: {
-    type: String,
-    enum: NIVELES,
-    required: false,
-    default: undefined,
-    set: sanitizeEmpty
-  },
-
-  // Nuevos campos de Educación
-  institucion: { type: String, trim: true, default: "" },
-  periodoEduDesde: { type: Date },
-  periodoEduHasta: { type: Date },
-
+  // Estructura de educación como un array de objetos
+  educacion: [educacionSchema],
   experiencia: [experienciaSchema],
   cvFile: {
-    filename: String,
-    mimetype: String,
-    size: Number,
-    url: String,
+    filename: { type: String }, // Nombre del archivo en el servidor
+    mimetype: { type: String }, // Tipo de archivo (e.g., 'application/pdf')
+    size: { type: Number },     // Tamaño en bytes
+    url: { type: String },      // URL para ver/descargar el archivo (en este caso, de OneDrive)
+    provider: { type: String }, // Proveedor de almacenamiento (e.g., 'onedrive', 'local')
+    providerId: { type: String } // ID único del archivo en el proveedor
   },
 }, { timestamps: true });
 

@@ -24,6 +24,15 @@ const appSchema = new mongoose.Schema(
       linkedin: String,
       areaInteres: String,
       nivelAcademico: String,
+      // --- CORRECCIÓN CLAVE ---
+      // Añadimos la estructura para guardar la info del archivo del CV.
+      cvFile: {
+        filename: String,
+        mimetype: String,
+        size: Number,
+        provider: String,
+        providerId: String,
+      },
     },
   },
   { timestamps: true }

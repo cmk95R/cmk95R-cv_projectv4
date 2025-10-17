@@ -1,8 +1,6 @@
 // src/auth/google.strategy.js
 
-// 1. AÑADE ESTA IMPORTACIÓN
 import jwt from "jsonwebtoken";
-
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import User from "../models/User.js";
@@ -22,34 +20,42 @@ export function initGooglePassport() {
                 clientSecret: GOOGLE_CLIENT_SECRET,
                 callbackURL: `${BASE_URL.replace(/\/+$/, "")}/auth/google/callback`,
             },
-            async (_at, _rt, profile, done) => {
+            async (_accessToken, _refreshToken, profile, done) => {
                 try {
+                    // 1. Extrae todos los datos del perfil de Google
                     const email = profile?.emails?.[0]?.value?.toLowerCase() || null;
                     const googleId = profile?.id;
-                    // ... (resto de la extracción de datos del perfil)
+                    const nombre = profile?.name?.givenName || profile?.displayName || "Usuario";
+                    const apellido = profile?.name?.familyName || "";
+                    const avatar = profile?.photos?.[0]?.value || null;
 
                     let user =
                         (await User.findOne({ "providers.google.id": googleId })) ||
                         (email && (await User.findOne({ email })));
 
                     if (!user) {
-                        user = await User.create({ /* ... tus datos de usuario ... */ });
+                        // 2. Pasa todos los datos necesarios para crear el usuario
+                        user = await User.create({
+                            email,
+                            nombre,
+                            apellido,
+                            avatar, // Campo opcional pero bueno tenerlo
+                            rol: "user",
+                            providers: { google: { id: googleId, email } },
+                        });
                     } else if (!user.providers?.google?.id) {
+                        // Si el usuario existe pero no tiene el proveedor de Google, lo añade
                         user.providers = user.providers || {};
                         user.providers.google = { id: googleId, email };
                         await user.save();
                     }
 
-                    // --- 2. CAMBIO CLAVE AQUÍ ---
-                    // Crea el payload del token
+                    // Crea el payload y firma el token (sin cambios aquí)
                     const payload = { id: user._id.toString(), rol: user.rol };
-
-                    // Firma el token
                     const token = jwt.sign(payload, process.env.JWT_SECRET, {
-                        expiresIn: "1d", // O tu tiempo de expiración preferido
+                        expiresIn: "1d",
                     });
 
-                    // Pasa el token en el objeto user a la función done()
                     return done(null, { token });
 
                 } catch (err) {

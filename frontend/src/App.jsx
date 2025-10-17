@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import Dashboard from './pages/Dashboard';
 import Home from './pages/home';
 import Login from './pages/login';
 import Register from './pages/register';
@@ -12,6 +13,7 @@ import PublicSearches from "./pages/PublicSearches";
 import MyApplications from "./pages/myapplicaction"; 
 import AdminApplicationsPage from './pages/AdminApplicationsPage'; 
 import LoginSso from "./pages/LoginSso";
+import GoogleAuthCallback from './pages/GoogleAuthCallback';
 <Route path="/admin/users" element={<AdminUsersGrid />} />
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/CVForm" element={<CVForm />} />
         <Route path="/admin/users" element={<AdminUsersGrid />} />
+        <Route path="/login/sso" element={<GoogleAuthCallback />} />
+        <Route path="/admin/dashboard" element={<Dashboard   />} />
         <Route path="admin/candidates" element={<AdminCandidateGrid />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/login" element={<Login />} />

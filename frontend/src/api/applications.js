@@ -12,3 +12,17 @@ export const listApplicationsApi = (params = {}) =>
 
 export const updateApplicationApi = (id, payload) =>
   api.patch(`/admin/applications/${id}`, payload);
+
+export const withdrawApplicationApi = (id) => 
+  api.delete(`/applications/${id}`);
+/**
+ * Elimina (retira) una postulación específica por su ID.
+ * @param {string} applicationId - El ID de la postulación a retirar.
+ */
+
+/**
+ * Obtiene la URL de descarga del CV para una postulación específica (Admin).
+ * @param {string} applicationId - El ID de la postulación.
+ */
+export const getApplicationCvDownloadUrlApi = (applicationId) =>
+  api.get(`/admin/applications/${applicationId}/cv/download`);

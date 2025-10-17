@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Grid, TextField, Autocomplete, CircularProgress } from "@mui/material";
 
-const BASE = "https://apis.datos.gob.ar/georef/api";
-
+import { fetchProvinciasApi, fetchLocalidadesApi } from "../api/apiGeo";
 // dedup por id
 const dedupeById = (arr = []) => Array.from(new Map(arr.map((x) => [x.id, x])).values());
 
@@ -26,10 +25,10 @@ export default function DireccionAR({ value, onChange, required }) {
         (async () => {
             try {
                 setLoadingProv(true);
-                const r = await fetch(`${BASE}/provincias?campos=id,nombre&orden=nombre`);
-                const j = await r.json();
+                // Usamos nuestra nueva API del backend
+                const { data } = await fetchProvinciasApi();
                 if (!alive) return;
-                setProvincias(dedupeById(j?.provincias || []));
+                setProvincias(dedupeById(data?.provincias || []));
             } catch (e) {
                 console.error("Error provincias", e);
             } finally {
@@ -51,12 +50,10 @@ export default function DireccionAR({ value, onChange, required }) {
             }
             try {
                 setLoadingLoc(true);
-                const r = await fetch(
-                    `${BASE}/localidades?provincia=${encodeURIComponent(provId)}&campos=id,nombre&orden=nombre&max=5000`
-                );
-                const j = await r.json();
+                // Usamos nuestra nueva API del backend
+                const { data } = await fetchLocalidadesApi(provId);
                 if (!alive) return;
-                const list = dedupeById(j?.localidades || []);
+                const list = dedupeById(data?.localidades || []);
                 cacheLocalidades.set(provId, list);
                 setLocalidades(list);
             } catch (e) {
@@ -74,6 +71,15 @@ export default function DireccionAR({ value, onChange, required }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [prov]);
 
+    // --- CORRECCIÓN ---
+    // Asegurarse de que la provincia se establezca solo cuando la lista de provincias esté cargada.
+    useEffect(() => {
+        if (provincias.length > 0 && value?.provincia?.id) {
+            const initialProv = provincias.find(p => p.id === value.provincia.id);
+            if (initialProv) setProv(initialProv);
+        }
+    }, [provincias, value?.provincia?.id]);
+
     // Emitir cambios al padre (idempotente)
     useEffect(() => {
         const payload = {
@@ -84,7 +90,7 @@ export default function DireccionAR({ value, onChange, required }) {
         if (key !== lastEmittedRef.current) {
             lastEmittedRef.current = key;
             onChange?.(payload);
-        }
+        } // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [prov, loc]); // no incluimos onChange
 
     return (

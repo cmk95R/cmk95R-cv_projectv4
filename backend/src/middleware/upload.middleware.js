@@ -1,3 +1,5 @@
+// middleware/upload.middleware.js
+
 import multer from "multer";
 
 // Usamos memoryStorage porque no queremos guardar el archivo en el disco del servidor.

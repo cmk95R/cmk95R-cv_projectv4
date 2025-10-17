@@ -127,7 +127,7 @@ export default function DashboardLayout() {
   ];
 
   const adminMenu = [
-    { text: "Inicio", icon: <HomeIcon />, path: "/" },
+    { text: "Inicio", icon: <HomeIcon />, path: "/admin/dashboard" },
     { text: "ABM de Búsquedas", icon: <WorkIcon />, path: "/admin/searches" },
     { text: "ABM de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "ABM de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },

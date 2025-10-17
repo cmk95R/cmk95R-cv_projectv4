@@ -15,6 +15,7 @@ import cvRoutes from "./routes/cvRoutes.js";
 import adminSearchesRoutes from "./routes/adminSearches.routes.js";
 import searchesRoutes from "./routes/searches.routes.js";
 import applicationsRoutes from "./routes/applications.routes.js";
+import geoRoutes from "./routes/geoRoutes.js";
 
 // Passport (Google)
 import { initGooglePassport } from "./auth/google.strategy.js";
@@ -84,7 +85,7 @@ app.use("/cv", cvRoutes);
 app.use("/", adminSearchesRoutes);
 app.use("/", searchesRoutes);
 app.use("/", applicationsRoutes);
-
+app.use("/geo", geoRoutes);
 /* ===== 404 ===== */
 app.use((req, res) => {
   res.status(404).json({ message: "Ruta no encontrada" });

@@ -37,6 +37,8 @@ export const applyToSearch = async (req, res, next) => {
             linkedin: cv.linkedin ?? "",
             areaInteres: cv.areaInteres ?? "",
             nivelAcademico: cv.nivelAcademico ?? "",
+            // 💡 ¡AQUÍ ESTÁ LA CORRECCIÓN!
+            cvFile: cv.cvFile, // Copiamos la información del archivo del CV
           }
         : {
             nombre: req.user.nombre,
@@ -109,4 +111,38 @@ export const updateApplication = async (req, res, next) => {
     if (!app) return res.status(404).json({ message: "Postulación no encontrada" });
     res.json({ application: app });
   } catch (e) { next(e); }
+};
+
+// --- NUEVAS FUNCIONES ---
+
+/**
+ * 🗑️ Retirar una postulación.
+ * DELETE /applications/:id (user)
+ */
+export const withdrawApplication = async (req, res, next) => {
+  try {
+    const applicationId = req.params.id;
+    const userId = req.user._id;
+
+    // 🔑 Verificación de seguridad: Asegurarnos de que la postulación
+    // pertenezca al usuario que está haciendo la solicitud.
+    const application = await Application.findOne({
+      _id: applicationId,
+      user: userId,
+    });
+
+    if (!application) {
+      // Si no se encuentra, puede ser porque no existe o no es del usuario.
+      // Devolvemos 404 para no dar información de más.
+      return res.status(404).json({ message: "Postulación no encontrada." });
+    }
+
+    // Eliminamos la postulación encontrada
+    await application.deleteOne();
+
+    res.status(200).json({ message: "Postulación retirada con éxito." });
+
+  } catch (e) {
+    next(e);
+  }
 };
