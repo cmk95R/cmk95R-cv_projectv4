@@ -9,7 +9,7 @@ import {
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DownloadIcon from "@mui/icons-material/Download";
-
+import CircularProgress from "@mui/material/CircularProgress";
 import { listApplicationsApi, updateApplicationApi, getApplicationCvDownloadUrlApi } from "../api/applications";
 
 // --- Constantes
