@@ -13,6 +13,7 @@ import {
   Container,
   Typography,
   Paper,
+  Alert,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -35,10 +36,46 @@ export default function RegisterForm() {
 
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  // --- INICIO: VALIDACIÓN ---
+  const [errors, setErrors] = useState({});
+  // --- FIN: VALIDACIÓN ---
+
+  // --- INICIO: VALIDACIÓN EN FRONTEND ---
+  const validateField = (name, value) => {
+    let error = "";
+    switch (name) {
+      case "nombre":
+        if (!value) error = "El nombre es requerido.";
+        else if (value.length < 2) error = "El nombre debe tener al menos 2 caracteres.";
+        else if (!/^[a-zA-ZÀ-ÿ\s']+$/.test(value)) error = "El nombre solo puede contener letras y espacios.";
+        break;
+      case "apellido":
+        if (!value) error = "El apellido es requerido.";
+        else if (value.length < 2) error = "El apellido debe tener al menos 2 caracteres.";
+        else if (!/^[a-zA-ZÀ-ÿ\s']+$/.test(value)) error = "El apellido solo puede contener letras y espacios.";
+        break;
+      case "email":
+        if (!value) error = "El email es requerido.";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = "El formato del email no es válido.";
+        break;
+      case "password":
+        if (!value) error = "La contraseña es requerida.";
+        else if (value.length < 8) error = "La contraseña debe tener al menos 8 caracteres.";
+        else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.,])/.test(value)) {
+          error = "Debe contener mayúscula, minúscula, número y un caracter especial.";
+        }
+        break;
+      default:
+        break;
+    }
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    // Validar en tiempo real
+    validateField(name, value);
   };
 
   const handleDireccionChange = useCallback(
@@ -48,12 +85,23 @@ export default function RegisterForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form?.direccion?.provincia?.id || !form?.direccion?.localidad?.id) {
-      alert("Seleccioná provincia y localidad");
+
+    // --- INICIO: VALIDACIÓN ---
+    // Correr todas las validaciones antes de enviar
+    const fieldNames = ["nombre", "apellido", "email", "password"];
+    fieldNames.forEach(field => validateField(field, form[field]));
+
+    // Comprobar si hay algún error en el estado de errores
+    const hasErrors = fieldNames.some(field => !!validateField(field, form[field]) || !!errors[field]);
+    if (hasErrors) {
+      setErrors(prev => ({ ...prev, general: "Por favor, corrige los errores antes de continuar." }));
       return;
     }
+    // --- FIN: VALIDACIÓN ---
 
     setLoading(true);
+    setErrors({}); // Limpiamos errores en cada intento
+
     try {
       const { data } = await registerApi({
         nombre: form.nombre,
@@ -62,11 +110,23 @@ export default function RegisterForm() {
         password: form.password,
         direccion: form.direccion,
       });
-      localStorage.setItem("token", data.token);
-      setUser(data.user);
-      navigate("/");
+      // Como el registro ya no inicia sesión, mostramos un mensaje y redirigimos a login
+      alert(data.message || "Registro exitoso. Ya puedes iniciar sesión.");
+      navigate("/login");
     } catch (err) {
-      alert(err?.response?.data?.message || "No se pudo registrar");
+      // --- INICIO: VALIDACIÓN ---
+      const apiErrors = err?.response?.data;
+      if (apiErrors?.errors) {
+        // Si el backend devuelve un array de errores, lo procesamos
+        const newErrors = {};
+        apiErrors.errors.forEach(error => {
+          newErrors[error.path] = error.msg;
+        });
+        setErrors(newErrors);
+      } else {
+        // Si es un error genérico
+        setErrors({ general: apiErrors?.message || "No se pudo registrar" });
+      }
     } finally {
       setLoading(false);
     }
@@ -91,6 +151,8 @@ export default function RegisterForm() {
               value={form.nombre}
               onChange={handleChange}
               fullWidth
+              error={!!errors.nombre}
+              helperText={errors.nombre}
               required
             />
 
@@ -101,6 +163,8 @@ export default function RegisterForm() {
               value={form.apellido}
               onChange={handleChange}
               fullWidth
+              error={!!errors.apellido}
+              helperText={errors.apellido}
               required
             />
 
@@ -117,6 +181,8 @@ export default function RegisterForm() {
               value={form.email}
               onChange={handleChange}
               fullWidth
+              error={!!errors.email}
+              helperText={errors.email}
               required
             />
 
@@ -127,6 +193,8 @@ export default function RegisterForm() {
               value={form.password}
               onChange={handleChange}
               fullWidth
+              error={!!errors.password}
+              helperText={errors.password}
               required
               InputProps={{
                 endAdornment: (
@@ -153,6 +221,12 @@ export default function RegisterForm() {
               }
               label="Recordarme"
             />
+
+            {errors.general && (
+              <Alert severity="error" sx={{ width: '100%' }}>
+                {errors.general}
+              </Alert>
+            )}
 
             <Button
               type="submit"

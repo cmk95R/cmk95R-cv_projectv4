@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { normalizeDireccion } from "../utils/normalize.js"; // <-- ¡NUEVA IMPORTACIÓN!
 import { sendWelcomeEmail } from "../services/email.services.js";
+import { validationResult } from "express-validator";
 
 const signToken = (user) =>
   jwt.sign(
@@ -16,19 +17,18 @@ const signToken = (user) =>
 // POST /auth/register
 export const register = async (req, res, next) => {
   try {
+    // --- INICIO: VALIDACIÓN ---
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      // Si hay errores de validación, respondemos con un 400 y la lista de errores.
+      return res.status(400).json({ errors: errors.array() });
+    }
+    // --- FIN: VALIDACIÓN ---
+
     let { nombre, apellido, email, password, direccion, rol, nacimiento } = req.body;
 
-    // Normalización mínima
-    nombre = String(nombre || "").trim();
-    apellido = String(apellido || "").trim();
-    email = String(email || "").trim().toLowerCase();
-    password = String(password || "");
-    if (!nombre || !apellido || !email || !password) {
-      return res.status(400).json({ message: "Faltan campos requeridos" });
-    }
-
     // Evitar duplicados
-    const exists = await User.exists({ email });
+    const exists = await User.exists({ email: req.body.email }); // Usamos el email ya normalizado
     if (exists) return res.status(409).json({ message: "El email ya está registrado" });
 
     // Seguridad: no permitir admin desde registro público
@@ -68,10 +68,15 @@ export const register = async (req, res, next) => {
 // POST /auth/login
 export const login = async (req, res, next) => {
   try {
-    let { email, password } = req.body;
-    email = String(email || "").trim().toLowerCase();
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-    const user = await User.findOne({ email }).select("+password");
+    const { email, password } = req.body;
+
+    // El email ya viene normalizado por express-validator
+    const user = await User.findOne({ email: email }).select("+password");
     if (!user) return res.status(401).json({ message: "Credenciales inválidas" });
 
     // --- INICIO: COMPROBACIÓN DE VERIFICACIÓN ---

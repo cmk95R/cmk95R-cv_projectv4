@@ -45,21 +45,48 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "", remember: false });
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
 
   const API_URL = import.meta.env.VITE_API_URL || "";
 
   const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/";
 
+  const validateField = (name, value) => {
+    let error = "";
+    switch (name) {
+      case "email":
+        if (!value) error = "El email es requerido.";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = "El formato del email no es válido.";
+        break;
+      case "password":
+        if (!value) error = "La contraseña es requerida.";
+        break;
+      default:
+        break;
+    }
+    setErrors(prev => ({ ...prev, [name]: error, general: "" }));
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    validateField(name, value);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Correr validaciones antes de enviar
+    validateField("email", form.email);
+    validateField("password", form.password);
+
+    if (errors.email || errors.password || !form.email || !form.password) {
+      setErrors(prev => ({ ...prev, general: "Por favor, completa todos los campos correctamente." }));
+      return;
+    }
+
     setLoading(true);
-    setError(""); // <-- Limpia el error anterior
+    setErrors({}); // Limpia errores antes de la llamada a la API
 
     try {
       const { data } = await loginApi({ email: form.email, password: form.password });
@@ -78,8 +105,18 @@ export default function Login() {
       }
       
     } catch (err) {
-      const msg = err?.response?.data?.message || "Email o contraseña incorrectos.";
-      setError(msg);
+      const apiErrors = err?.response?.data;
+      if (apiErrors?.errors) {
+        // Si el backend devuelve un array de errores de validación
+        const newErrors = {};
+        apiErrors.errors.forEach(error => {
+          newErrors[error.path] = error.msg;
+        });
+        setErrors(newErrors);
+      } else {
+        // Si es un error genérico (401, 500, etc.)
+        setErrors({ general: apiErrors?.message || "Email o contraseña incorrectos." });
+      }
     } finally {
       setLoading(false);
     }
@@ -112,7 +149,8 @@ export default function Login() {
               value={form.email}
               onChange={handleChange}
               fullWidth
-              required
+              error={!!errors.email}
+              helperText={errors.email}
             />
 
             <TextField
@@ -122,7 +160,8 @@ export default function Login() {
               value={form.password}
               onChange={handleChange}
               fullWidth
-              required
+              error={!!errors.password}
+              helperText={errors.password}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -150,9 +189,9 @@ export default function Login() {
             />
           </Stack>
 
-          {error && (
+          {errors.general && (
             <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
-              {error}
+              {errors.general}
             </Alert>
           )}
 

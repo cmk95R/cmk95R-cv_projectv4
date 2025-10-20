@@ -95,7 +95,7 @@ export default function DireccionAR({ value, onChange, required }) {
 
     return (
         <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6} width={150}>
                 <Autocomplete
                     options={provincias}
                     value={prov}
@@ -126,7 +126,7 @@ export default function DireccionAR({ value, onChange, required }) {
                     )}
                 />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6} width={150}>
                 <Autocomplete
                     options={localidades}
                     value={loc}

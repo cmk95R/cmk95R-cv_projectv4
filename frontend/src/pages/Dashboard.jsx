@@ -168,16 +168,25 @@ export default function AdminDashboard() {
                                 <React.Fragment key={app._id}>
                                     <ListItem
                                         button
-                                        component={RouterLink}
-                                        to={`/admin/applications?q=${app.user.nombre}`} // Ejemplo de link
+                                        // --- CORRECCIÓN: Añadir comprobación para el enlace ---
+                                        component={app.user ? RouterLink : 'div'} // Usar 'div' si el usuario no existe para que no sea un enlace roto
+                                        to={app.user ? `/admin/applications?q=${app.user.nombre}` : undefined}
                                         sx={{ py: 1.5, px: 3 }}
                                     >
                                         <ListItemAvatar>
-                                            <Avatar sx={{ bgcolor: 'secondary.light' }}>{`${app.user.nombre[0]}${app.user.apellido[0]}`}</Avatar>
+                                            {/* --- CORRECCIÓN: Comprobación para el Avatar --- */}
+                                            <Avatar sx={{ bgcolor: 'secondary.light' }}>
+                                                {app.user ? `${app.user.nombre[0]}${app.user.apellido[0]}` : 'X'}
+                                            </Avatar>
                                         </ListItemAvatar>
                                         <ListItemText
-                                            primary={<Typography variant="body1" fontWeight="500">{`${app.user.nombre} ${app.user.apellido}`}</Typography>}
-                                            secondary={`Se postuló a ${app.search.titulo}`}
+                                            // --- CORRECCIÓN: Comprobación para el texto principal y secundario ---
+                                            primary={
+                                                <Typography variant="body1" fontWeight="500">
+                                                    {app.user ? `${app.user.nombre} ${app.user.apellido}` : 'Usuario Eliminado'}
+                                                </Typography>
+                                            }
+                                            secondary={`Se postuló a ${app.search ? app.search.titulo : 'una búsqueda eliminada'}`}
                                         />
                                         <Typography variant="body2" color="text.secondary">
                                             {formatTimeAgo(app.createdAt)}
