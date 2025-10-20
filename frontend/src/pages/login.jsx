@@ -11,7 +11,8 @@ import {
   Button,
   IconButton,
   InputAdornment,
-  Divider
+  Divider,
+  Alert,
 } from "@mui/material";
 import SocialLogin from "../components/socialLogin";
 
@@ -44,7 +45,8 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "", remember: false });
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState(""); 
+  const [error, setError] = useState("");
+
   const API_URL = import.meta.env.VITE_API_URL || "";
 
   const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/";
@@ -57,7 +59,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(""); // <-- Limpia el error anterior en cada nuevo intento
+    setError(""); // <-- Limpia el error anterior
 
     try {
       const { data } = await loginApi({ email: form.email, password: form.password });
@@ -76,7 +78,6 @@ export default function Login() {
       }
       
     } catch (err) {
-      // Usa el nuevo estado de error en lugar de alert()
       const msg = err?.response?.data?.message || "Email o contraseña incorrectos.";
       setError(msg);
     } finally {
@@ -148,6 +149,12 @@ export default function Login() {
               label="Recordarme"
             />
           </Stack>
+
+          {error && (
+            <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
+              {error}
+            </Alert>
+          )}
 
           <Button
             type="submit"

@@ -6,10 +6,11 @@ import Application from "../models/Application.js"; // <-- CORRECCIÓN: Importac
 // <-- CAMBIO 1: Importar nuestro servicio de OneDrive
 import { uploadFileToOneDrive } from "../services/oneDrive.service.js";
 import { getDownloadUrlForFile, deleteFileFromOneDrive } from "../services/oneDrive.service.js";
+import { normalizeDireccion } from "../utils/normalize.js"; // <-- ¡NUEVA IMPORTACIÓN!
 // ... (ALLOWED_FIELDS, OPCIONES_AREA, NIVELES no cambian) ...
 const ALLOWED_FIELDS = new Set([
   "nombre", "apellido", "nacimiento", "perfil", "telefono",
-  "linkedin", "email", "areaInteres", "educacion", "experiencia"
+  "linkedin", "email", "areaInteres", "educacion", "experiencia" // <-- 'direccion' eliminado
   // Eliminados los campos de educación individuales
 ]);
 const OPCIONES_AREA = ["Administracion", "Recursos Humanos", "Sistemas", "Pasantia"];
@@ -23,6 +24,21 @@ const NIVELES = [
 async function normalizePayload(body, file, user) {
   const $set = {};
   const $unset = {};
+
+  // --- INICIO: CORRECCIÓN ---
+  // Cuando los datos vienen de `multipart/form-data`, los objetos se envían como strings JSON.
+  // Necesitamos parsearlos de vuelta a objetos antes de procesarlos.
+  const fieldsToParse = ['direccion', 'educacion', 'experiencia'];
+  for (const field of fieldsToParse) {
+    if (body[field] && typeof body[field] === 'string') {
+      try {
+        body[field] = JSON.parse(body[field]);
+      } catch (e) {
+        console.error(`Error al parsear el campo ${field} del CV:`, e);
+      }
+    }
+  }
+  // --- FIN: CORRECCIÓN ---
 
   const put = (k, v) => {
     if (v === "" || v == null) $unset[k] = "";
@@ -117,8 +133,17 @@ export const upsertMyCV = async (req, res, next) => {
 
     // --- INICIO: Actualizar también el modelo User ---
     const userUpdate = {};
-    if (req.body.nombre) userUpdate.nombre = req.body.nombre;
-    if (req.body.apellido) userUpdate.apellido = req.body.apellido;
+    // Sincronizamos los campos principales del CV al User.
+    if (update.$set.nombre) userUpdate.nombre = update.$set.nombre;
+    if (update.$set.apellido) userUpdate.apellido = update.$set.apellido;
+    if (update.$set.telefono) userUpdate.telefono = update.$set.telefono;
+    if (update.$set.nacimiento) userUpdate.nacimiento = update.$set.nacimiento;
+    
+    // --- CORRECCIÓN: Normalizamos y sincronizamos la dirección directamente al User ---
+    if (req.body.direccion) {
+      userUpdate.direccion = normalizeDireccion(req.body.direccion);
+    }
+
     if (Object.keys(userUpdate).length > 0) {
       await User.findByIdAndUpdate(req.user._id, userUpdate);
     }
@@ -213,4 +238,30 @@ export const downloadCvByApplication = async (req, res, next) => {
     } catch (e) {
         next(e);
     }
+};
+
+/**
+ * 🔑 ADMIN: Descarga el CV de un usuario por su ID.
+ * GET /admin/users/:userId/cv/download
+ */
+export const downloadCvByUserId = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+
+    const cv = await CV.findOne({ user: userId }).lean();
+    if (!cv?.cvFile?.providerId) {
+      return res.status(404).json({ message: "El usuario no tiene un archivo de CV adjunto." });
+    }
+
+    const downloadUrl = await getDownloadUrlForFile(cv.cvFile.providerId);
+    if (!downloadUrl) {
+      return res.status(500).json({ message: "No se pudo obtener el enlace de descarga del archivo." });
+    }
+
+    // Devolvemos la URL en un JSON para que el frontend la gestione
+    return res.json({ downloadUrl });
+
+  } catch (e) {
+    next(e);
+  }
 };

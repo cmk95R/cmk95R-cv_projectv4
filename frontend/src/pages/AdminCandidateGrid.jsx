@@ -1,12 +1,12 @@
 // src/pages/AdminCandidatesGrid.jsx
 import * as React from "react";
 import {
-  Box, Stack, Paper, Typography, TextField, MenuItem,
-  Button, Snackbar, Alert, CircularProgress
+  Box, Stack, Paper, Typography, TextField, MenuItem, Tooltip, IconButton,
+  Snackbar, Alert, CircularProgress
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { listCandidatesApi } from "../api/candidates";
-import { listUsersApi } from "../api/users"; // fallback si tu backend aún usa /users
+import DownloadIcon from "@mui/icons-material/Download";
+import { listUsersWithCvApi, getUserCvDownloadUrlApi } from "../api/users";
 
 const fmtDate = (v) => {
   if (!v) return "";
@@ -24,76 +24,38 @@ export default function AdminCandidatesGrid() {
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [snack, setSnack] = React.useState({ open: false, severity: "success", msg: "" });
-
-  // filtros
-  const [q, setQ] = React.useState("");
-  const [areaFilter, setAreaFilter] = React.useState("all");
-
-  const mapFromCV = (cv) => {
-    const u = cv?.user || {};
-    const nombre = [u?.nombre, u?.apellido].filter(Boolean).join(" ") || "(sin nombre)";
-    
-    const publicId = u?.publicId || "";
-    const email = u?.email || "";
-
-    // ubicacion prioriza User.direccion (tu modelo actual)
-    const dir = u?.direccion || {};
-    const ubicacion = [dir?.ciudad, dir?.provincia, dir?.pais].filter(Boolean).join(", ");
-
-    return {
-      id: cv?._id,
-      publicId,
-      nombre,
-      email,
-      ubicacion,
-      area: cv?.areaInteres || "",
-      nivel: cv?.nivelAcademico || "",
-      telefono: cv?.telefono || "",
-      linkedin: cv?.linkedin || "",
-      creado: cv?.createdAt,
-    };
-  };
-
-  const mapFromUserOnly = (u) => {
-    const nombre = [u?.nombre, u?.apellido].filter(Boolean).join(" ") || "(sin nombre)";
-    
-    const dir = u?.direccion || {};
-    const ubicacion = [dir?.ciudad, dir?.provincia, dir?.pais].filter(Boolean).join(", ");
-
-    return {
-      id: u?._id || u?.id,
-      publicId: u?.publicId || "",
-      nombre,
-      email: u?.email || "",
-      ubicacion: ubicacion || "",
-      area: "",   // sin CV no hay área
-      nivel: "",  // sin CV no hay nivel
-      telefono: "",
-      linkedin: "",
-      creado: u?.createdAt,
-    };
-  };
+  const [filters, setFilters] = React.useState({ q: "", areaInteres: "all" });
+  const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 10 });
+  const [rowCount, setRowCount] = React.useState(0);
+  const [downloadingId, setDownloadingId] = React.useState(null);
 
   const fetchCandidates = React.useCallback(async () => {
     setLoading(true);
     try {
-      // INTENTO 1: endpoint de CVs (GET /cv -> { cvs: [...] }) con populate(user)
-      const { data } = await listCandidatesApi();
-      const cvs = Array.isArray(data?.cvs) ? data.cvs : [];
-      if (cvs.length) {
-        const mapped = cvs
-          .filter(cv => (cv?.user?.rol ?? "user") === "user")
-          .map(mapFromCV);
-        setRows(mapped);
-      } else {
-        // INTENTO 2 (fallback): /users si aún no creaste GET /cv
-        const resp = await listUsersApi();
-        const users = Array.isArray(resp?.data?.users) ? resp.data.users : [];
-        const mapped = users
-          .filter(u => (u?.rol ?? "user") === "user")
-          .map(mapFromUserOnly);
-        setRows(mapped);
-      }
+      const params = {
+        rol: "user", // Solo queremos candidatos
+        q: filters.q,
+        areaInteres: filters.areaInteres === "all" ? "" : filters.areaInteres,
+        page: paginationModel.page + 1,
+        limit: paginationModel.pageSize,
+      };
+      const { data } = await listUsersWithCvApi(params);
+      const mapped = (data?.items || []).map(u => ({
+        id: u._id,
+        publicId: u.publicId,
+        nombre: u.nombre,
+        apellido: u.apellido,
+        email: u.email,
+        ubicacion: [u.direccion?.localidad?.nombre, u.direccion?.provincia?.nombre].filter(Boolean).join(", "),
+        area: u.cvArea,
+        nivel: u.cvNivel,
+        linkedin: u.cvLinkedin,
+        telefono: u.telefono || u.cvTelefono,
+        creado: u.createdAt,
+        hasCv: u.hasCv,
+      }));
+      setRows(mapped);
+      setRowCount(data?.total || 0);
     } catch (e) {
       console.error(e);
       setSnack({
@@ -104,27 +66,39 @@ export default function AdminCandidatesGrid() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters, paginationModel]);
 
-  React.useEffect(() => { fetchCandidates(); }, [fetchCandidates]);
+  React.useEffect(() => {
+    const timer = setTimeout(() => fetchCandidates(), 500); // debounce para no llamar a la API en cada tecla
+    return () => clearTimeout(timer);
+  }, [fetchCandidates]);
 
   const allAreas = React.useMemo(() => {
     const set = new Set(rows.map(r => r.area).filter(Boolean));
     return ["all", ...Array.from(set)];
   }, [rows]);
 
-  const filtered = rows.filter((r) => {
-    const query = q.trim().toLowerCase();
-    const byText = !query
-      || r.nombre.toLowerCase().includes(query)
-      || r.email.toLowerCase().includes(query);
-    const byArea = areaFilter === "all" || r.area === areaFilter;
-    return byText && byArea;
-  });
+  const handleDownloadCv = async (row) => {
+    setDownloadingId(row.id);
+    try {
+      const { data } = await getUserCvDownloadUrlApi(row.id);
+      if (data.downloadUrl) {
+        window.open(data.downloadUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        throw new Error("La URL de descarga no fue encontrada.");
+      }
+    } catch (e) {
+      console.error(e);
+      setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo obtener el CV" });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const columns = [
-      { field: "publicId", headerName: "ID", width: 120 }, // si lo tenés
-    { field: "nombre", headerName: "Nombre", flex: 1.2, minWidth: 180 },
+    { field: "publicId", headerName: "ID", width: 120 },
+    { field: "nombre", headerName: "Nombre", flex: 1, minWidth: 100 },
+    { field: "apellido", headerName: "Apellido", flex: 1, minWidth: 100  },
     { field: "email", headerName: "Email", flex: 1.2, minWidth: 220 },
     {
       field: "ubicacion",
@@ -133,22 +107,23 @@ export default function AdminCandidatesGrid() {
       minWidth: 150,
       renderCell: (p) => p.value ? p.value : <span style={{ opacity: .6 }}>—</span>
     },
-    {
-      field: "area",
-      headerName: "Área de interés",
-      width: 150,
-      renderCell: (p) => p.value ? p.value : <span style={{ opacity: .6 }}>—</span>
-    },
-    {
-      field: "nivel",
-      headerName: "Nivel académico",
-      width: 220,
-      renderCell: (p) => p.value ? p.value : <span style={{ opacity: .6 }}>—</span>
-    },
+    // {
+    //   field: "area",
+    //   headerName: "Área de interés",
+    //   width: 150,
+    //   renderCell: (p) => p.value ? p.value : <span style={{ opacity: .6 }}>—</span>
+    // },
+    // {
+    //   field: "nivel",
+    //   headerName: "Nivel académico",
+    //   width: 220,
+    //   renderCell: (p) => p.value ? p.value : <span style={{ opacity: .6 }}>—</span>
+    // },
     {
       field: "linkedin",
       headerName: "LinkedIn",
-      width: 240,
+      flex: 0.5,
+      minWidth: 120,
       renderCell: (p) =>
         p.value
           ? <a href={normalizeLink(p.value)} target="_blank" rel="noreferrer">{p.value}</a>
@@ -157,10 +132,37 @@ export default function AdminCandidatesGrid() {
     {
       field: "telefono",
       headerName: "Teléfono",
-      width: 140,
+      flex: 0.5,
+      minWidth: 120,
       renderCell: (p) => p.value ? p.value : <span style={{ opacity: .6 }}>—</span>
     },
-    { field: "creado", headerName: "Creado", width: 120, valueGetter: (p) => fmtDate(p.row?.creado) },
+    {
+      field: "creado",
+      headerName: "Creado",
+      width: 120,
+      valueGetter: (value, row) => fmtDate(row.creado)
+    },
+    {
+      field: "actions",
+      headerName: "Acciones",
+      width: 100,
+      align: "center",
+      sortable: false,
+      renderCell: (params) => (
+        params.row.hasCv ? (
+          <Tooltip title="Descargar CV">
+            <IconButton
+              size="small"
+              color="primary"
+              onClick={() => handleDownloadCv(params.row)}
+              disabled={downloadingId === params.row.id}
+            >
+              {downloadingId === params.row.id ? <CircularProgress size={20} /> : <DownloadIcon />}
+            </IconButton>
+          </Tooltip>
+        ) : null
+      ),
+    },
   ];
 
   return (
@@ -172,17 +174,17 @@ export default function AdminCandidatesGrid() {
       <Paper sx={{ p: 2, mb: 2, borderRadius: 2 }} elevation={2}>
         <Stack direction={{ xs: "column", lg: "row" }} spacing={2}>
           <TextField
-            label="Buscar (nombre o email)"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            label="Buscar (nombre, apellido o email)"
+            value={filters.q}
+            onChange={(e) => setFilters(f => ({ ...f, q: e.target.value }))}
             fullWidth
           />
 
           <TextField
             select
             label="Área"
-            value={areaFilter}
-            onChange={(e) => setAreaFilter(e.target.value)}
+            value={filters.areaInteres}
+            onChange={(e) => setFilters(f => ({ ...f, areaInteres: e.target.value }))}
             sx={{ width: 150 }}
           >
             {allAreas.map((a) => (
@@ -191,8 +193,6 @@ export default function AdminCandidatesGrid() {
               </MenuItem>
             ))}
           </TextField>
-
-          <Button variant="outlined" onClick={fetchCandidates}>Actualizar</Button>
         </Stack>
       </Paper>
 
@@ -203,11 +203,15 @@ export default function AdminCandidatesGrid() {
           </Stack>
         ) : (
           <DataGrid
-            rows={Array.isArray(filtered) ? filtered : []}
+            rows={rows}
             columns={columns}
-            disableRowSelectionOnClick
+            rowCount={rowCount}
+            loading={loading}
             pageSizeOptions={[5, 10, 25]}
-            initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            paginationMode="server"
+            disableRowSelectionOnClick
             getRowId={(row) => row.id}
           />
         )}

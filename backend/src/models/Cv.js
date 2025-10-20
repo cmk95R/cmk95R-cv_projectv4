@@ -35,11 +35,7 @@ const cvSchema = new mongoose.Schema({
 
   nacimiento: { type: Date, trim: true },
   perfil: { type: String, trim: true, default: "" }, // Resumen profesional
-  direccion: {
-    localidad: { type: String, trim: true, default: "" },
-    provincia: { type: String, trim: true, default: "" },
-    pais: { type: String, trim: true, default: "" },
-  },
+  // El campo 'direccion' se elimina de aquí. La única fuente de verdad será el modelo User.
   
   // ❗ Sin default; permite undefined. Si llega "", lo convierte a undefined.
   areaInteres: {

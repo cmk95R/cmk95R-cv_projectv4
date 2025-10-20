@@ -143,7 +143,7 @@ export default function AdminUsersGrid() {
             <MenuItem value="user">User</MenuItem>
             <MenuItem value="admin">Admin</MenuItem>
           </TextField>
-          <Button onClick={fetchUsers} variant="outlined">Actualizar</Button>
+          {/* <Button onClick={fetchUsers} variant="outlined">Actualizar</Button> */}
         </Stack>
       </Paper>
 

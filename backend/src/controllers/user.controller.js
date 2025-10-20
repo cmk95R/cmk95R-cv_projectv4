@@ -1,29 +1,22 @@
 // controllers/user.controller.js
 import User from "../models/User.js";
 
-// Helper para normalizar la dirección que viene del front
+// --- CORRECCIÓN ---
+// La función no estaba procesando correctamente el objeto completo.
+// Ahora se asegura de que tanto provincia como localidad se manejen bien.
 function normalizeDireccion(input) {
   if (!input || typeof input !== "object") return undefined;
 
   const out = {};
-
-  // Normaliza provincia y localidad para que sean objetos {id, nombre}
-  if (input.provincia) {
-    out.provincia = typeof input.provincia === 'string'
-      ? { nombre: input.provincia }
-      : { id: input.provincia.id, nombre: input.provincia.nombre };
+  
+  // Usamos el operador de encadenamiento opcional (?.) para evitar errores si no existen.
+  if (input.provincia?.id && input.provincia?.nombre) {
+    out.provincia = { id: input.provincia.id, nombre: input.provincia.nombre };
   }
-  if (input.localidad) {
-    out.localidad = typeof input.localidad === 'string'
-      ? { nombre: input.localidad }
-      : { id: input.localidad.id, nombre: input.localidad.nombre };
+  if (input.localidad?.id && input.localidad?.nombre) {
+    out.localidad = { id: input.localidad.id, nombre: input.localidad.nombre };
   }
-
-  // Mantiene otros campos si existen
-  if (input.pais) out.pais = input.pais; // Asumimos que pais es un string
-
-  // Si no hay datos útiles, devuelve undefined
-  if (Object.keys(out).length === 0) return undefined;
+  
   return out;
 }
 
@@ -40,11 +33,10 @@ export const editUser = async (req, res, next) => {
     if (nacimiento) update.nacimiento = nacimiento; // Asume que es una fecha válida
 
     const direccionNorm = normalizeDireccion(direccion);
-    if (direccionNorm) {
-      // Usamos el operador punto para actualizar campos anidados
-      Object.keys(direccionNorm).forEach(key => {
-        update[`direccion.${key}`] = direccionNorm[key];
-      });
+    // Si la dirección normalizada tiene datos, la asignamos directamente.
+    // Mongoose se encargará de actualizar los campos anidados.
+    if (direccionNorm && Object.keys(direccionNorm).length > 0) {
+      update.direccion = direccionNorm;
     }
 
     const u = await User.findByIdAndUpdate(
@@ -61,8 +53,13 @@ export const editUser = async (req, res, next) => {
 // GET /users  (si lo usás para admin)
 export const listUsers = async (_req, res, next) => {
   try {
-    const users = await User.find().select("_id publicId nombre apellido direccion nacimiento telefono email rol createdAt");
-    res.json({ users });
+    // Hacemos un lookup para traer la información del CV de cada usuario
+    const users = await User.aggregate([
+      { $lookup: { from: 'cvs', localField: '_id', foreignField: 'user', as: 'cv' } },
+      { $unwind: { path: '$cv', preserveNullAndEmptyArrays: true } },
+      { $project: { nombre: 1, apellido: 1, email: 1, rol: 1, createdAt: 1, 'cv.cvFile.providerId': 1 } }
+    ]);
+    res.json({ users: users });
   } catch (e) { next(e); }
 };
 
@@ -183,7 +180,7 @@ export const listUsersWithCv = async (req, res, next) => {
           updatedAt: 1,
           // dirección básica para "Ubicación" en el front
           direccion: {
-            ciudad: "$direccion.ciudad",
+            localidad: "$direccion.localidad",
             provincia: "$direccion.provincia",
             pais: "$direccion.pais"
           },

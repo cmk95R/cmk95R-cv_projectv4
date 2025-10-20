@@ -1,7 +1,10 @@
 // controllers/auth.controller.js
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { normalizeDireccion } from "../utils/normalize.js"; // <-- ¡NUEVA IMPORTACIÓN!
+import { sendWelcomeEmail } from "../services/email.services.js";
 
 const signToken = (user) =>
   jwt.sign(
@@ -9,71 +12,6 @@ const signToken = (user) =>
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
   );
-
-/** Normaliza "direccion" al formato esperado:
- * {
- *   provincia?: { id?: string, nombre?: string },
- *   localidad?: { id?: string, nombre?: string },
- *   calle?: string, numero?: string, cp?: string
- * }
- * Acepta:
- * - string (legacy): "Flores"
- * - objeto legacy: { ciudad: "Flores" }
- * - objeto oficial: { provincia:{id,nombre}, localidad:{id,nombre} }
- */
-function normalizeDireccion(input) {
-  if (!input) return undefined;
-
-  if (typeof input === "string") {
-    const nombre = input.trim();
-    if (!nombre) return undefined;
-    return { localidad: { nombre } };
-  }
-
-  if (typeof input === "object") {
-    const out = {};
-
-    // legacy { ciudad: "Flores" }
-    if (typeof input.ciudad === "string" && input.ciudad.trim()) {
-      out.localidad = { nombre: input.ciudad.trim() };
-    }
-
-    // oficial provincia/localidad (puede venir string u objeto)
-    if (input.provincia) {
-      if (typeof input.provincia === "string") {
-        out.provincia = { nombre: input.provincia.trim() };
-      } else if (typeof input.provincia === "object") {
-        out.provincia = {
-          id: input.provincia.id ? String(input.provincia.id).trim() : undefined,
-          nombre: input.provincia.nombre ? String(input.provincia.nombre).trim() : undefined,
-        };
-      }
-    }
-    if (input.localidad) {
-      if (typeof input.localidad === "string") {
-        out.localidad = { nombre: input.localidad.trim() };
-      } else if (typeof input.localidad === "object") {
-        out.localidad = {
-          id: input.localidad.id ? String(input.localidad.id).trim() : undefined,
-          nombre: input.localidad.nombre ? String(input.localidad.nombre).trim() : undefined,
-        };
-      }
-    }
-
-    // extras opcionales
-    ["calle", "numero", "cp"].forEach((k) => {
-      if (input[k]) out[k] = String(input[k]).trim();
-    });
-
-    // si quedó vacío, retorná undefined
-    if (!out.provincia && !out.localidad && !out.calle && !out.numero && !out.cp) {
-      return undefined;
-    }
-    return out;
-  }
-
-  return undefined;
-}
 
 // POST /auth/register
 export const register = async (req, res, next) => {
@@ -105,23 +43,20 @@ export const register = async (req, res, next) => {
       apellido,
       email,
       password,
-      rol: safeRole,  // ✅ corregido
-      nacimiento,     // ✅ ahora nacimiento es nacimiento
+      rol: safeRole,  
+      nacimiento,     
     };
     if (direccionNorm) payload.direccion = direccionNorm;
 
     const user = await User.create(payload);
 
-    const token = signToken(user);
-    return res.status(201).json({
-      user: {
-        id: user._id,
-        nombre: user.nombre,
-        apellido: user.apellido,
-        email: user.email,
-        rol: user.rol,
-      },
-      token,
+    // --- INICIO: LÓGICA DE BIENVENIDA ---
+    // 1. Enviar correo de bienvenida (sin verificación)
+    await sendWelcomeEmail(user);
+    console.log(`[AUTH] Correo de bienvenida enviado a ${user.email}`);
+
+    res.status(201).json({
+      message: "Registro exitoso. ¡Bienvenido! Revisa tu correo para más información.",
     });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.email) {
@@ -130,7 +65,6 @@ export const register = async (req, res, next) => {
     next(err);
   }
 };
-
 // POST /auth/login
 export const login = async (req, res, next) => {
   try {
@@ -139,6 +73,13 @@ export const login = async (req, res, next) => {
 
     const user = await User.findOne({ email }).select("+password");
     if (!user) return res.status(401).json({ message: "Credenciales inválidas" });
+
+    // --- INICIO: COMPROBACIÓN DE VERIFICACIÓN ---
+    // Impedir login si el email no está verificado
+    const isProviderUser = !!user.providers?.google?.id;
+    if (!user.password && !isProviderUser) {
+      return res.status(401).json({ message: "Esta cuenta fue creada usando Google. Por favor, inicia sesión con Google." });
+    }
 
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ message: "Credenciales inválidas" });

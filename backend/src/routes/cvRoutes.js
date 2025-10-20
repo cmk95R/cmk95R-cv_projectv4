@@ -9,6 +9,7 @@ import {
   upsertMyCV,
   listAllCVs,
   getMyCV,
+  downloadCvByUserId,
 } from "../controllers/cv.controller.js";
 import { downloadMyCv } from "../controllers/cv.controller.js";
 
@@ -25,4 +26,7 @@ router.get("/me", requireAuth, getMyCV);
 router.get("/", requireAuth, requireRole("admin"), listAllCVs);
 // Ruta para que el usuario descargue su propio CV
 router.get("/me/download", requireAuth, downloadMyCv);
+// Ruta para que el admin descargue el CV de un usuario
+router.get("/admin/users/:userId/cv/download", requireAuth, requireRole("admin"), downloadCvByUserId);
+
 export default router;

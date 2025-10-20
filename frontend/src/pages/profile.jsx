@@ -7,24 +7,29 @@ import {
 import { styled } from '@mui/material/styles';
 import {
   ArrowBack as ArrowBackIcon,
-  CheckCircleOutline as CheckCircleOutlineIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
   CloudUpload as CloudUploadIcon
 } from "@mui/icons-material";
-
 import DownloadIcon from "@mui/icons-material/Download";
+
 // APIs
 import { profileApi } from "../api/auth";
 import { getMyCvApi, upsertMyCv, upsertMyCvJson } from "../api/cv";
+import { getMyCvDownloadUrlApi } from "../api/cv";
+
+// Componentes
 import DireccionAR from "../components/DireccionAR";
-import { getMyCvDownloadUrlApi } from "../api/cv"
+
+// Utils
+import { normalizeDireccion } from "../utils/normalize";
+import { mergeDireccion } from "../utils/merge";
 
 // Constantes
 const nivelesAcademicos = [
   "Secundario completo", "Secundario incompleto", "Terciario/Técnico en curso",
   "Terciario/Técnico completo", "Universitario en curso", "Universitario completo",
-  "Posgrado en curso", "Posgrado completo","Curso/Bootcamp"
+  "Posgrado en curso", "Posgrado completo", "Curso/Bootcamp"
 ];
 const steps = ['Datos Personales', 'Contacto', 'Educación', 'Experiencia', 'Adjuntar CV', 'Revisar y Guardar'];
 
@@ -40,6 +45,17 @@ const VisuallyHiddenInput = styled('input')({
   whiteSpace: 'nowrap',
   width: 1,
 });
+
+// (Opcional) Mapea la dirección a IDs si tu backend lo prefiere
+const toBackendDireccion = (dir) => {
+  if (!dir) return undefined;
+  const out = { ...dir };
+  if (dir.provincia?.id) out.provinciaId = dir.provincia.id;
+  if (dir.localidad?.id) out.localidadId = dir.localidad.id;
+  delete out.provincia;
+  delete out.localidad;
+  return out;
+};
 
 // --- Componente principal ---
 export default function ProfileWizard() {
@@ -57,18 +73,18 @@ export default function ProfileWizard() {
       const [{ data: me }, { data: cvResp }] = await Promise.all([profileApi(), getMyCvApi()]);
       const userData = me?.user || {};
       const cv = cvResp?.cv || {};
+
       setUser(userData);
+
+      // --- LÓGICA DE FUSIÓN ---
+      // 1. La base son los datos del CV (que no tiene dirección).
+      // 2. Los datos del User (incluida la dirección) sobreescriben la base.
       setCvData({
-        // CORRECCIÓN: Se usa la data del usuario como base
-        // y luego se sobreescribe con la del CV si existe.
+        ...cv,
         ...userData,
-        nombre: cv.nombre || userData.nombre || '',
-        apellido: cv.apellido || userData.apellido || '',
-        nacimiento: cv.nacimiento || userData.nacimiento || '',
-        email: cv.email || userData.email || '',
-        // La dirección del CV (si existe y tiene datos) sobreescribe la del usuario.
-        direccion: (cv.direccion && Object.keys(cv.direccion).length > 0) ? cv.direccion : userData.direccion,
-        ...cv, // El resto de los datos del CV sobreescriben la base.
+        nombre: cv?.nombre ?? userData?.nombre ?? "",
+        apellido: cv?.apellido ?? userData?.apellido ?? "",
+        email: cv?.email ?? userData?.email ?? "",
       });
     } catch (e) {
       console.error(e);
@@ -85,7 +101,7 @@ export default function ProfileWizard() {
   };
 
   const handleDireccionChange = useCallback((dir) => {
-    setCvData(prevData => ({ ...prevData, direccion: dir }));
+    setCvData(prev => ({ ...prev, direccion: normalizeDireccion(dir) }));
   }, []);
 
   const handleExperienceChange = (newExperiences) => {
@@ -99,21 +115,28 @@ export default function ProfileWizard() {
   const handleFinalSave = async () => {
     setIsSaving(true);
     try {
+      // Si tu backend espera objetos {provincia:{}, localidad:{}}, podés usar cvData directo.
+      // Si prefiere IDs, usamos toBackendDireccion:
+      const payload = {
+        ...cvData,
+        direccion: toBackendDireccion(cvData.direccion),
+      };
+
       if (selectedFile) {
         const formData = new FormData();
         // Adjuntamos el archivo bajo el nombre 'cvPdf' que espera el backend
         formData.append('cvPdf', selectedFile, selectedFile.name);
 
-        // Creamos una copia de cvData para no modificar el estado directamente
-        const dataToSend = { ...cvData };
-        // Nos aseguramos de no enviar el objeto 'cvFile' que ya no es necesario
+        // Creamos una copia de payload para no modificar estado
+        const dataToSend = { ...payload };
+        // No enviar el objeto 'cvFile' (no necesario)
         delete dataToSend.cvFile;
 
         // Adjuntamos el resto de los campos al FormData
         for (const key in dataToSend) {
           const value = dataToSend[key];
           // Los objetos (como 'direccion' o 'experiencia') se convierten a JSON
-          if (['experiencia', 'educacion'].includes(key) || (typeof value === 'object' && value !== null)) {
+          if (['experiencia', 'educacion', 'direccion'].includes(key) || (typeof value === 'object' && value !== null)) {
             formData.append(key, JSON.stringify(value));
           } else if (value !== null && value !== undefined) {
             formData.append(key, value);
@@ -121,7 +144,7 @@ export default function ProfileWizard() {
         }
         await upsertMyCv(formData);
       } else {
-        await upsertMyCvJson(cvData);
+        await upsertMyCvJson(payload);
       }
 
       setSnack({ open: true, severity: "success", msg: "Perfil guardado con éxito!" });
@@ -154,7 +177,16 @@ export default function ProfileWizard() {
       case 1: return <ContactLocationForm data={cvData} onFieldChange={handleDataChange} onDireccionChange={handleDireccionChange} reviewData={cvData} />;
       case 2: return <EducationForm data={cvData.educacion || []} onChange={handleEducationChange} reviewData={cvData} />;
       case 3: return <ExperienceForm data={cvData.experiencia || []} onChange={handleExperienceChange} reviewData={cvData} />;
-      case 4: return <UploadCV existingFile={cvData.cvFile} lastUpdated={cvData.updatedAt} onFileSelect={setSelectedFile} reviewData={cvData} newFile={selectedFile} />;
+      case 4: return (
+        <UploadCV
+          key={cvData.updatedAt || (cvData.cvFile?.filename || 'no-file')}
+          existingFile={cvData.cvFile}
+          lastUpdated={cvData.updatedAt}
+          onFileSelect={setSelectedFile}
+          reviewData={cvData}
+          newFile={selectedFile}
+        />
+      );
       case 5: return <ReviewAndSaveForm data={cvData} newFile={selectedFile} />; // El paso final ya es una revisión completa
       default: return 'Paso desconocido';
     }
@@ -216,7 +248,11 @@ const ContactDataReviewCard = ({ data }) => (
     <Typography>Email: {data.email || '—'}</Typography>
     <Typography>LinkedIn: {data.linkedin || '—'}</Typography>
     <Typography>Teléfono: {data.telefono || '—'}</Typography>
-    <Typography>Ubicación: {data.direccion?.localidad?.nombre || ''}{data.direccion?.provincia?.nombre ? `, ${data.direccion.provincia.nombre}` : ''}</Typography>
+    <Typography>
+      Ubicación: {
+        [data.direccion?.localidad?.nombre, data.direccion?.provincia?.nombre].filter(Boolean).join(', ') || '—'
+      }
+    </Typography>
   </Card>
 );
 
@@ -293,7 +329,7 @@ const ContactLocationForm = ({ data, onFieldChange, onDireccionChange, reviewDat
           <TextField label="Email *" value={data.email || ''} onChange={e => onFieldChange('email', e.target.value)} fullWidth />
           <TextField label="Teléfono" value={data.telefono || ''} onChange={e => onFieldChange('telefono', e.target.value)} fullWidth />
           <TextField label="URL de LinkedIn" value={data.linkedin || ''} onChange={e => onFieldChange('linkedin', e.target.value)} fullWidth />
-          <DireccionAR value={data.direccion} onChange={onDireccionChange} required />
+          <DireccionAR value={data.direccion || null} onChange={onDireccionChange} required />
         </Stack>
       </Grid>
       <Grid item xs={12} md={5}>
@@ -391,7 +427,6 @@ const ExperienceForm = ({ data, onChange, reviewData }) => {
 };
 
 // --- Componente UploadCV con el botón de descarga corregido ---
-
 const UploadCV = ({ existingFile, lastUpdated, onFileSelect, reviewData, newFile }) => {
   const [selectedFileName, setSelectedFileName] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
@@ -404,14 +439,11 @@ const UploadCV = ({ existingFile, lastUpdated, onFileSelect, reviewData, newFile
     }
   };
 
-  // --- 2. NUEVA FUNCIÓN PARA MANEJAR LA DESCARGA SEGURA ---
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      // Llama a la API que devuelve la URL de descarga en un JSON
       const { data } = await getMyCvDownloadUrlApi();
       if (data.downloadUrl) {
-        // Abre la URL segura y temporal de OneDrive en una nueva pestaña
         window.open(data.downloadUrl, '_blank', 'noopener,noreferrer');
       }
     } catch (error) {
@@ -437,7 +469,6 @@ const UploadCV = ({ existingFile, lastUpdated, onFileSelect, reviewData, newFile
                 <VisuallyHiddenInput type="file" accept=".pdf" onChange={handleFileChange} />
               </Button>
 
-              {/* --- 3. BOTÓN DE DESCARGA MODIFICADO --- */}
               {existingFile?.providerId && !selectedFileName && (
                 <Button
                   variant="contained"
@@ -454,7 +485,7 @@ const UploadCV = ({ existingFile, lastUpdated, onFileSelect, reviewData, newFile
               <Alert severity="info" sx={{ mt: 2 }}>
                 Nuevo archivo seleccionado: <strong>{selectedFileName}</strong>. Se guardará al final del proceso.
               </Alert>
-            ) : existingFile?.filename ? ( // CORRECCIÓN: Se usa 'filename' en minúsculas para coincidir con el backend.
+            ) : existingFile?.filename ? (
               <Alert severity="success" sx={{ mt: 2 }}>
                 Ya tienes un CV guardado: <strong>{existingFile.filename}</strong>
                 {lastUpdated && (

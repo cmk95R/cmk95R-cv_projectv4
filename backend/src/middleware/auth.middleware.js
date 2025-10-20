@@ -22,7 +22,7 @@ export const requireAuth = async (req, res, next) => {
 
     const user = await User
       .findById(userId)
-      .select("_id nombre apellido email rol dni nacimiento");
+      .select("_id nombre apellido email rol dni nacimiento direccion");
     if (!user) return res.status(401).json({ message: "Usuario no encontrado" });
 
     req.user = user;
