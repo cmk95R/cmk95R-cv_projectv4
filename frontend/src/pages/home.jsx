@@ -294,10 +294,10 @@ const Home = () => {
           </Box>
           
         </Box>
-        <Stack direction="row" spacing={2} alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
+        {/* <Stack direction="row" spacing={2} alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
             <IconButton onClick={prevTestimonio}><ArrowBackIosNewIcon /></IconButton>
             <IconButton onClick={nextTestimonio}><ArrowForwardIosIcon /></IconButton>
-          </Stack>
+          </Stack> */}
       </Container>
 
 
