@@ -84,7 +84,7 @@ export default function DireccionAR({ value, onChange, required }) {
 
     return (
         <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} width={150}>
+            <Grid item xs={12} sm={6}>
                 <Autocomplete
                     options={provincias}
                     value={value?.provincia || null}
@@ -110,10 +110,10 @@ export default function DireccionAR({ value, onChange, required }) {
                     )}
                 />
             </Grid>
-            <Grid item xs={12} sm={6} width={150}>
+            <Grid item xs={12} sm={6}>
                 <Autocomplete
                     options={localidades}
-                    value={value?.localidad || null}
+                    value={value?.provincia?.id === value?.localidad?.provincia?.id ? value.localidad : null}
                     getOptionLabel={(o) => o?.nombre || ""}
                     onChange={handleLocalidadChange}
                     isOptionEqualToValue={(a, b) => a.id === b.id}
