@@ -78,23 +78,24 @@ const valores = [
 ];
 const testimonios = [
   {
-    nombre: 'María S.',
-    rol: 'Frontend Developer',
-    frase: 'Crecí más en 6 meses que en años anteriores. El mentoring hace la diferencia.',
-    foto: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=300&auto=format&fit=crop'
+    nombre: 'Bautista Palma.',
+    rol: 'Pasante Administrativo',
+    frase: 'ASYTEC es mi primera experiencia trabajando y me ayudará a abrir nuevas puertas en el mundo laboral. Es una gran Oportunidad.',
+    foto: '../testimonios/t2.png'
   },
   {
-    nombre: 'Maria Sofía R.',
-    rol: 'Product Manager',
-    frase: 'La cultura de equipo y el feedback constante te empujan a mejorar.',
-    foto: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?q=80&w=300&auto=format&fit=crop'
+    nombre: 'Agustin Gonzalez',
+    rol: 'Soporte Técnico',
+    frase: 'Agradezco la oportunidad y el reconocimiento que me da ASYTEC, y valoro formar parte de este equipo',
+    foto: '../testimonios/t1.png'
   },
   {
-    nombre: 'Juan Manuel V.',
-    rol: 'IT Support',
-    frase: 'Es un lugar humano: escuchan y te dan oportunidades reales de crecer.',
-    foto: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?q=80&w=300&auto=format&fit=crop'
+    nombre: 'Joan Valenzuela.',
+    rol: 'Analista de Ciberseguridad',
+    frase: 'Muy feliz por salir de la zona de confort para cumplir sueños y animarme a crecer. Gracias ASYTEC por confiar en mis capacidades',
+    foto: '../testimonios/t3.png'
   },
+  
 ];
 
 const areas = [
@@ -268,10 +269,7 @@ const Home = () => {
       <Container maxWidth="md" sx={{ mb: 8 }}>
         <Typography variant="h4" gutterBottom textAlign="center">Historias reales</Typography>
         <Box sx={{ position: 'relative', backgroundColor: 'white', borderRadius: 3, boxShadow: 3, p: 4 }}>
-          <Stack direction="row" spacing={2} alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
-            <IconButton onClick={prevTestimonio}><ArrowBackIosNewIcon /></IconButton>
-            <IconButton onClick={nextTestimonio}><ArrowForwardIosIcon /></IconButton>
-          </Stack>
+          
           <Box sx={{ minHeight: 170, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <AnimatePresence mode="wait">
               <motion.div
@@ -283,7 +281,7 @@ const Home = () => {
                 style={{ width: '100%' }}
               >
                 <Stack spacing={2} alignItems="center" textAlign="center">
-                  <Avatar src={testimonios[idxTestimonio].foto} sx={{ width: 72, height: 72 }} />
+                  <Avatar src={testimonios[idxTestimonio].foto} sx={{ width: 96, height: 96 }} />
                   <Typography variant="h6" sx={{ maxWidth: 680 }}>
                     “{testimonios[idxTestimonio].frase}”
                   </Typography>
@@ -294,7 +292,12 @@ const Home = () => {
               </motion.div>
             </AnimatePresence>
           </Box>
+          
         </Box>
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="center" sx={{ mb: 2 }}>
+            <IconButton onClick={prevTestimonio}><ArrowBackIosNewIcon /></IconButton>
+            <IconButton onClick={nextTestimonio}><ArrowForwardIosIcon /></IconButton>
+          </Stack>
       </Container>
 
 

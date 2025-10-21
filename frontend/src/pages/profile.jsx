@@ -15,8 +15,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 
 // APIs
 import { profileApi } from "../api/auth";
-import { getMyCvApi, upsertMyCv, upsertMyCvJson } from "../api/cv";
-import { getMyCvDownloadUrlApi } from "../api/cv";
+import { getMyCvApi, upsertMyCv, upsertMyCvJson, getMyCvDownloadUrlApi } from "../api/cv";
+import { editUserApi } from "../api/users";
 
 // Componentes
 import DireccionAR from "../components/DireccionAR";
@@ -45,17 +45,6 @@ const VisuallyHiddenInput = styled('input')({
   whiteSpace: 'nowrap',
   width: 1,
 });
-
-// (Opcional) Mapea la dirección a IDs si tu backend lo prefiere
-const toBackendDireccion = (dir) => {
-  if (!dir) return undefined;
-  const out = { ...dir };
-  if (dir.provincia?.id) out.provinciaId = dir.provincia.id;
-  if (dir.localidad?.id) out.localidadId = dir.localidad.id;
-  delete out.provincia;
-  delete out.localidad;
-  return out;
-};
 
 // --- Componente principal ---
 export default function ProfileWizard() {
@@ -114,12 +103,24 @@ export default function ProfileWizard() {
 
   const handleFinalSave = async () => {
     setIsSaving(true);
+
     try {
-      // Si tu backend espera objetos {provincia:{}, localidad:{}}, podés usar cvData directo.
-      // Si prefiere IDs, usamos toBackendDireccion:
+      // --- CORRECCIÓN: Separamos la lógica de guardado ---
+
+      // 1. Preparamos el payload para actualizar el perfil del USUARIO
+      const userPayload = {
+        nombre: cvData.nombre,
+        apellido: cvData.apellido,
+        telefono: cvData.telefono,
+        nacimiento: cvData.nacimiento,
+        direccion: cvData.direccion, // Enviamos el objeto de dirección completo
+      };
+      // Llamamos a la API para actualizar el usuario
+      await editUserApi(userPayload);
+
+      // 2. Preparamos el payload para actualizar el CV
       const payload = {
         ...cvData,
-        direccion: toBackendDireccion(cvData.direccion),
       };
 
       if (selectedFile) {
@@ -127,16 +128,17 @@ export default function ProfileWizard() {
         // Adjuntamos el archivo bajo el nombre 'cvPdf' que espera el backend
         formData.append('cvPdf', selectedFile, selectedFile.name);
 
-        // Creamos una copia de payload para no modificar estado
+        // Creamos una copia de payload para no modificar el estado
         const dataToSend = { ...payload };
-        // No enviar el objeto 'cvFile' (no necesario)
+        // No enviar el objeto 'cvFile' ni 'direccion' al endpoint del CV
         delete dataToSend.cvFile;
+        delete dataToSend.direccion;
 
         // Adjuntamos el resto de los campos al FormData
         for (const key in dataToSend) {
           const value = dataToSend[key];
           // Los objetos (como 'direccion' o 'experiencia') se convierten a JSON
-          if (['experiencia', 'educacion', 'direccion'].includes(key) || (typeof value === 'object' && value !== null)) {
+          if (['experiencia', 'educacion'].includes(key) || (typeof value === 'object' && value !== null)) {
             formData.append(key, JSON.stringify(value));
           } else if (value !== null && value !== undefined) {
             formData.append(key, value);
@@ -144,6 +146,8 @@ export default function ProfileWizard() {
         }
         await upsertMyCv(formData);
       } else {
+        // Si no hay archivo, enviamos solo los datos del CV como JSON
+        delete payload.direccion;
         await upsertMyCvJson(payload);
       }
 

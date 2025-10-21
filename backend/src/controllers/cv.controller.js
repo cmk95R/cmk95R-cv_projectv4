@@ -1,12 +1,11 @@
 // controllers/cv.controller.js
 
 import User from "../models/User.js";
-import CV from "../models/Cv.js";
+import Cv from "../models/Cv.js";
 import Application from "../models/Application.js"; // <-- CORRECCIÓN: Importación añadida
 // <-- CAMBIO 1: Importar nuestro servicio de OneDrive
 import { uploadFileToOneDrive } from "../services/oneDrive.service.js";
 import { getDownloadUrlForFile, deleteFileFromOneDrive } from "../services/oneDrive.service.js";
-import { normalizeDireccion } from "../utils/normalize.js"; // <-- ¡NUEVA IMPORTACIÓN!
 // ... (ALLOWED_FIELDS, OPCIONES_AREA, NIVELES no cambian) ...
 const ALLOWED_FIELDS = new Set([
   "nombre", "apellido", "nacimiento", "perfil", "telefono",
@@ -100,7 +99,7 @@ async function normalizePayload(body, file, user) {
 // ... (getMyCV no cambia) ...
 export const getMyCV = async (req, res, next) => {
   try {
-    const cv = await CV.findOne({ user: req.user._id })
+    const cv = await Cv.findOne({ user: req.user._id })
       .populate("user", " publicId email nombre apellido rol telefono direccion nacimiento")
       .lean();
     return res.json({ cv });
@@ -115,7 +114,7 @@ export const upsertMyCV = async (req, res, next) => {
     let oldFileIdToDelete = null;
     if (req.file) {
       // Si se está subiendo un archivo nuevo, buscamos el CV existente para ver si tenía un archivo anterior.
-      const existingCv = await CV.findOne({ user: req.user._id }).lean();
+      const existingCv = await Cv.findOne({ user: req.user._id }).lean();
       if (existingCv?.cvFile?.providerId) {
         oldFileIdToDelete = existingCv.cvFile.providerId;
       }
@@ -125,7 +124,7 @@ export const upsertMyCV = async (req, res, next) => {
     // <-- CAMBIO 4: Ahora esperamos la promesa de normalizePayload y pasamos el objeto 'user' completo
     const update = await normalizePayload(req.body, req.file, req.user);
 
-    const cv = await CV.findOneAndUpdate(
+    const cv = await Cv.findOneAndUpdate(
       { user: req.user._id },
       { ...update, $setOnInsert: { user: req.user._id } },
       { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
@@ -138,11 +137,6 @@ export const upsertMyCV = async (req, res, next) => {
     if (update.$set.apellido) userUpdate.apellido = update.$set.apellido;
     if (update.$set.telefono) userUpdate.telefono = update.$set.telefono;
     if (update.$set.nacimiento) userUpdate.nacimiento = update.$set.nacimiento;
-    
-    // --- CORRECCIÓN: Normalizamos y sincronizamos la dirección directamente al User ---
-    if (req.body.direccion) {
-      userUpdate.direccion = normalizeDireccion(req.body.direccion);
-    }
 
     if (Object.keys(userUpdate).length > 0) {
       await User.findByIdAndUpdate(req.user._id, userUpdate);
@@ -163,14 +157,14 @@ export const upsertMyCV = async (req, res, next) => {
 // ... (listAllCVs y getCV no cambian) ...
 export const listAllCVs = async (_req, res, next) => {
   try {
-    const cvs = await CV.find()
+    const cvs = await Cv.find()
       .populate("user", "publicId email nombre apellido rol telefono direccion nacimiento");
     res.json({ cvs });
   } catch (err) { next(err); }
 };
 export const getCV = async (req, res, next) => {
   try {
-    const cv = await CV.findById(req.params.id)
+    const cv = await Cv.findById(req.params.id)
       .populate("user", "publicId email nombre apellido rol telefono direccion nacimiento createdAt");
     if (!cv) return res.status(404).json({ message: "CV no encontrado" });
     res.json({ cv });
@@ -185,8 +179,7 @@ export const getCV = async (req, res, next) => {
 export const downloadMyCv = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    // CORRECCIÓN: Se usa 'CV' (mayúscula) como fue importado.
-    const cv = await CV.findOne({ user: userId }).lean();
+    const cv = await Cv.findOne({ user: userId }).lean();
     if (!cv?.cvFile?.providerId) {
       return res.status(404).json({ message: "No se encontró un archivo de CV adjunto." });
     }
@@ -248,7 +241,7 @@ export const downloadCvByUserId = async (req, res, next) => {
   try {
     const { userId } = req.params;
 
-    const cv = await CV.findOne({ user: userId }).lean();
+    const cv = await Cv.findOne({ user: userId }).lean();
     if (!cv?.cvFile?.providerId) {
       return res.status(404).json({ message: "El usuario no tiene un archivo de CV adjunto." });
     }

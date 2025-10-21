@@ -15,3 +15,6 @@ export const listUsersWithCvApi = (params) => api.get("/users/admin", { params }
  * @param {string} userId - El ID del usuario.
  */
 export const getUserCvDownloadUrlApi = (userId) => api.get(`/cv/admin/users/${userId}/cv/download`);
+
+
+export const editUserApi = (data) => api.patch("/users/me", data);

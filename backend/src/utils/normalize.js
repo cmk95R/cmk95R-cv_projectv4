@@ -1,65 +1,27 @@
 // src/utils/normalize.js
+
 /**
- * Normaliza el input de "direccion" a un formato consistente.
- * Acepta strings, objetos legacy y el formato oficial {id, nombre}.
- * También soporta alias: provinciaId/localidadId, ciudad, address.
+ * Normaliza el input de "direccion" a un formato consistente,
+ * asegurando que solo se guarden los campos `id` y `nombre`.
  */
 export function normalizeDireccion(input) {
-  if (!input) return undefined;
+  if (!input || typeof input !== "object") return undefined;
 
-  // Si a veces te llega todo dentro de "address"
-  const dir = input.address && typeof input.address === 'object' ? input.address : input;
-
-  if (typeof dir === "string") {
-    const nombre = dir.trim();
-    return nombre ? { localidad: { nombre } } : undefined;
+  const out = {};
+  
+  // Usamos el operador de encadenamiento opcional (?.) para evitar errores si no existen.
+  // --- CORRECCIÓN: Hacemos la función más flexible ---
+  // Ahora guardará la provincia si tiene al menos un 'id' o un 'nombre'.
+  if (input.provincia && (input.provincia.id || input.provincia.nombre)) {
+    out.provincia = { id: input.provincia.id ? String(input.provincia.id) : undefined, nombre: input.provincia.nombre ? String(input.provincia.nombre) : undefined };
   }
-
-  if (typeof dir === "object" && !Array.isArray(dir)) {
-    const out = {};
-
-    // Legacy { ciudad: "Flores" }
-    if (typeof dir.ciudad === "string" && dir.ciudad.trim()) {
-      out.localidad = { nombre: dir.ciudad.trim() };
-    }
-
-    // Soporte alias IDs sueltos
-    const provinciaId = dir.provinciaId ?? dir.provincia_id ?? dir.stateId ?? dir.provinceId;
-    const localidadId = dir.localidadId ?? dir.localidad_id ?? dir.cityId;
-
-    // Formato oficial/mixto para provincia/localidad (string u objeto)
-    ["provincia", "localidad"].forEach((key) => {
-      const raw = dir[key];
-      if (raw) {
-        if (typeof raw === "string" && raw.trim()) {
-          out[key] = { nombre: raw.trim() };
-        } else if (typeof raw === "object" && (raw.id || raw.nombre)) {
-          out[key] = {
-            id: raw.id != null ? String(raw.id).trim() : undefined,
-            nombre: raw.nombre != null ? String(raw.nombre).trim() : undefined,
-          };
-        }
-      }
-    });
-
-    // Completar id si vino en alias suelto
-    if (provinciaId != null) {
-      out.provincia = { ...(out.provincia || {}), id: String(provinciaId).trim() };
-    }
-    if (localidadId != null) {
-      out.localidad = { ...(out.localidad || {}), id: String(localidadId).trim() };
-    }
-
-    // Campos extra opcionales
-    ["calle", "numero", "cp", "pais", "piso", "depto"].forEach((k) => {
-      if (dir[k] && typeof dir[k] === "string") out[k] = dir[k].trim();
-    });
-
-    // Si no quedó nada, undefined
-    if (Object.keys(out).length === 0) return undefined;
-
-    return out;
+  // Hacemos lo mismo para la localidad.
+  if (input.localidad && (input.localidad.id || input.localidad.nombre)) {
+    out.localidad = { id: input.localidad.id ? String(input.localidad.id) : undefined, nombre: input.localidad.nombre ? String(input.localidad.nombre) : undefined };
   }
+  
+  // Si no quedó nada, undefined
+  if (Object.keys(out).length === 0) return undefined;
 
-  return undefined;
+  return out;
 }

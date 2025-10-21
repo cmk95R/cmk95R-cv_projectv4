@@ -1,28 +1,11 @@
 // controllers/user.controller.js
 import User from "../models/User.js";
+import { normalizeDireccion } from "../utils/normalize.js";
 
-// --- CORRECCIÓN ---
-// La función no estaba procesando correctamente el objeto completo.
-// Ahora se asegura de que tanto provincia como localidad se manejen bien.
-function normalizeDireccion(input) {
-  if (!input || typeof input !== "object") return undefined;
-
-  const out = {};
-  
-  // Usamos el operador de encadenamiento opcional (?.) para evitar errores si no existen.
-  if (input.provincia?.id && input.provincia?.nombre) {
-    out.provincia = { id: input.provincia.id, nombre: input.provincia.nombre };
-  }
-  if (input.localidad?.id && input.localidad?.nombre) {
-    out.localidad = { id: input.localidad.id, nombre: input.localidad.nombre };
-  }
-  
-  return out;
-}
-
-// PATCH /users/:id  (perfil básico)
+// --- CORRECCIÓN: La ruta ahora es PATCH /users/me ---
 export const editUser = async (req, res, next) => {
   try {
+    const userId = req.user._id; // Usamos el ID del usuario autenticado
     const { nombre, apellido, email, direccion, telefono, nacimiento } = req.body;
     const update = {};
 
@@ -40,7 +23,7 @@ export const editUser = async (req, res, next) => {
     }
 
     const u = await User.findByIdAndUpdate(
-      req.params.id,
+      userId, // Actualizamos al usuario correcto
       update,
       { new: true, runValidators: true, context: "query" }
     ).select("_id nombre apellido email rol telefono nacimiento direccion");
