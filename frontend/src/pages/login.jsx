@@ -96,8 +96,9 @@ export default function Login() {
       setUser(data.user);
 
       // --- 🔑 LÓGICA PARA LA REDIRECCIÓN BASADA EN ROL ---
-      if (data.user.rol === "admin") {
+      if (data.user.rol === "admin" || data.user.rol === "rrhh") {
         // Si el usuario es admin, lo redirige al dashboard de administrador
+        // Para rrhh, el menú correcto se mostrará en el layout.
         navigate("/admin/dashboard");
       } else {
         // Para usuarios normales, lo redirige a donde iba o a una página por defecto
@@ -106,7 +107,11 @@ export default function Login() {
       
     } catch (err) {
       const apiErrors = err?.response?.data;
-      if (apiErrors?.errors) {
+      // --- CORRECCIÓN: Manejo del error de cuenta inhabilitada ---
+      if (err.response?.status === 403 && apiErrors?.message) {
+        setErrors({ general: apiErrors.message });
+      }
+      else if (apiErrors?.errors) {
         // Si el backend devuelve un array de errores de validación
         const newErrors = {};
         apiErrors.errors.forEach(error => {

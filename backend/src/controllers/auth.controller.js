@@ -74,6 +74,12 @@ export const login = async (req, res, next) => {
     const user = await User.findOne({ email: email }).select("+password");
     if (!user) return res.status(401).json({ message: "Credenciales inválidas" });
 
+    // --- ¡VERIFICACIÓN CLAVE! ---
+    // Si el usuario está inactivo, denegamos el inicio de sesión.
+    if (user.estado === 'inactivo') {
+      return res.status(403).json({ message: "Tu cuenta está inhabilitada. Contacta al administrador." });
+    }
+
     // --- INICIO: COMPROBACIÓN DE VERIFICACIÓN ---
     // Impedir login si el email no está verificado
     const isProviderUser = !!user.providers?.google?.id;
@@ -92,6 +98,7 @@ export const login = async (req, res, next) => {
         apellido: user.apellido,
         email: user.email,
         rol: user.rol,
+        estado: user.estado,
       },
       token,
     });

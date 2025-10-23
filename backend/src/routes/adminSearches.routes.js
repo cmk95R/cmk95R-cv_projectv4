@@ -10,9 +10,9 @@ import {
 
 const router = Router();
 
-router.get("/admin/searches", requireAuth, requireRole("admin"), listSearches);
-router.post("/admin/searches", requireAuth, requireRole("admin"), createSearch);
-router.patch("/admin/searches/:id", requireAuth, requireRole("admin"), updateSearch);
-router.delete("/admin/searches/:id", requireAuth, requireRole("admin"), deleteSearch);
+router.get("/admin/searches", requireAuth, requireRole("admin", "rrhh"), listSearches);
+router.post("/admin/searches", requireAuth, requireRole("admin", "rrhh"), createSearch);
+router.patch("/admin/searches/:id", requireAuth, requireRole("admin", "rrhh"), updateSearch);
+router.delete("/admin/searches/:id", requireAuth, requireRole("admin", "rrhh"), deleteSearch);
 
 export default router;

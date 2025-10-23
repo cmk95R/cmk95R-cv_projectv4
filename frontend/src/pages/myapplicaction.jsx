@@ -37,6 +37,7 @@ import { Link as RouterLink } from "react-router-dom";
 
 // APIs
 import { myApplicationsApi, withdrawApplicationApi } from "../api/applications";
+import { AuthContext } from "../context/AuthContext"; // 1. Importar el AuthContext
 import { profileApi } from "../api/auth"; // API para obtener el perfil del usuario
 
 const statusMap = {
@@ -81,7 +82,7 @@ export default function MyApplications() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [statusOptions, setStatusOptions] = useState([]);
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(1); 
   const [snack, setSnack] = useState({ open: false, severity: "success", msg: "" });
   const [user, setUser] = useState(null);
   const PER_PAGE = 12;
@@ -109,9 +110,15 @@ export default function MyApplications() {
     }
   }, []);
 
+  // 2. Obtener el usuario del contexto
+  const { user: authUser } = useContext(AuthContext);
+
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    // 3. Solo ejecutar fetchData si hay un usuario autenticado
+    if (authUser) {
+      fetchData();
+    }
+  }, [fetchData, authUser]);
 
   const normalized = useMemo(() => items.map(normalize), [items]);
   const filtered = useMemo(() => {

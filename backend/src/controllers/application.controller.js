@@ -35,6 +35,8 @@ export const applyToSearch = async (req, res, next) => {
             email: cv.email ?? req.user.email,
             telefono: cv.telefono ?? "",
             linkedin: cv.linkedin ?? "",
+            // CORRECCIÓN: Añadimos la información del archivo al snapshot
+            cvFile: cv.cvFile, 
             ...cv, // Copiamos todos los campos del CV al snapshot
           }
         : {

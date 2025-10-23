@@ -37,6 +37,11 @@ const userSchema = new Schema(
         nacimiento: { type: Date, trim: true },
 
         rol: { type: String, enum: roles, default: "user" },
+        estado: {
+            type: String,
+            enum: ['activo', 'inactivo'],
+            default: 'activo'
+        },
         direccion: { type: direccionSchema, default: () => ({}) },
         providers: {
             google: { id: String, email: String },

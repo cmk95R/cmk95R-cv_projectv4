@@ -22,8 +22,12 @@ export const requireAuth = async (req, res, next) => {
 
     const user = await User
       .findById(userId)
-      .select("_id nombre apellido email rol dni nacimiento direccion");
+      .select("_id nombre apellido email rol dni nacimiento direccion estado"); // Añadimos 'estado' a la selección
     if (!user) return res.status(401).json({ message: "Usuario no encontrado" });
+
+    // --- CORRECCIÓN CLAVE ---
+    // Verificamos si el usuario está activo. Si no, denegamos el acceso.
+    if (user.estado === 'inactivo') return res.status(403).json({ message: "La cuenta de usuario está deshabilitada." });
 
     req.user = user;
     return next();

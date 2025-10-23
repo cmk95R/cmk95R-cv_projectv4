@@ -23,10 +23,10 @@ router.post("/me", requireAuth, upload.single("cvPdf"), upsertMyCV); // <-- ¡Aq
 
 // Estas rutas no cambian
 router.get("/me", requireAuth, getMyCV);
-router.get("/", requireAuth, requireRole("admin"), listAllCVs);
+router.get("/", requireAuth, requireRole("admin", "rrhh"), listAllCVs);
 // Ruta para que el usuario descargue su propio CV
 router.get("/me/download", requireAuth, downloadMyCv);
 // Ruta para que el admin descargue el CV de un usuario
-router.get("/admin/users/:userId/cv/download", requireAuth, requireRole("admin"), downloadCvByUserId);
+router.get("/admin/users/:userId/cv/download", requireAuth, requireRole("admin", "rrhh"), downloadCvByUserId);
 
 export default router;

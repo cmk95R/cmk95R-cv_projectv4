@@ -7,6 +7,7 @@ import {
 } from "@mui/material";
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import ToggleOnIcon from '@mui/icons-material/ToggleOn';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import ToggleOffIcon from '@mui/icons-material/ToggleOff';
 import { DataGrid } from "@mui/x-data-grid";
 // Usamos la API que soporta paginación y filtros
@@ -22,6 +23,7 @@ export default function AdminUsersGrid() {
 
   // Estado para el modal de cambio de rol
   const [roleModalOpen, setRoleModalOpen] = React.useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = React.useState(false);
   const [selectedUser, setSelectedUser] = React.useState(null);
   const [newRole, setNewRole] = React.useState('');
   
@@ -90,6 +92,17 @@ export default function AdminUsersGrid() {
     setNewRole('');
   };
 
+  // --- Lógica del modal de detalles ---
+  const handleOpenDetailsModal = (user) => {
+    setSelectedUser(user);
+    setDetailsModalOpen(true);
+  };
+
+  const handleCloseDetailsModal = () => {
+    setDetailsModalOpen(false);
+    setSelectedUser(null);
+  };
+
   const handleRoleChange = async () => {
     if (!selectedUser || selectedUser.rol === newRole) {
       handleCloseRoleModal();
@@ -98,7 +111,13 @@ export default function AdminUsersGrid() {
     try {
       await adminSetUserRoleApi(selectedUser.id, newRole);
       setRows(prev => prev.map(r => r.id === selectedUser.id ? { ...r, rol: newRole } : r));
-      setSnack({ open: true, severity: "success", msg: `Rol de ${selectedUser.nombre} cambiado a ${newRole}` });
+      // CORRECCIÓN: Asignamos un color según el rol.
+      const severity = newRole === 'admin' || newRole === 'rrhh' ? 'info' : 'success';
+      setSnack({
+        open: true,
+        severity: severity,
+        msg: `Rol de ${selectedUser.nombre} cambiado a ${newRole}`
+      });
     } catch (e) {
       console.error(e);
       setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo cambiar el rol" });
@@ -113,7 +132,8 @@ export default function AdminUsersGrid() {
     try {
       await adminSetUserStatusApi(user.id, newStatus);
       setRows(prev => prev.map(r => r.id === user.id ? { ...r, estado: newStatus } : r));
-      setSnack({ open: true, severity: "success", msg: `Usuario ahora está ${newStatus}` });
+      // CORRECCIÓN: Cambiamos el color de la notificación según el estado.
+      setSnack({ open: true, severity: newStatus === 'activo' ? 'success' : 'warning', msg: `${user.nombre} ahora está ${newStatus}` });
     } catch (e) {
       console.error(e);
       setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo cambiar el estado" });
@@ -132,7 +152,7 @@ export default function AdminUsersGrid() {
       minWidth: 100,
       
       renderCell: (params) => (
-        <Chip label={params.value} color={params.value === "admin" ? "secondary" : params.value === 'rrhh' ? 'info' : "default"} size="small" />
+        <Chip label={params.value} color={params.value === "admin" ? "success" : params.value === 'rrhh' ? 'info' : "default"} size="small" />
       ),
     },
     {
@@ -175,16 +195,22 @@ export default function AdminUsersGrid() {
       field: "actions",
       headerName: "Acciones",
       flex: 1,
-      minWidth: 100,
-      
+      minWidth: 120,
       align: "center", headerAlign: "center",
       sortable: false,
       renderCell: (params) => (
-        <Tooltip title="Cambiar Rol">
-          <IconButton onClick={() => handleOpenRoleModal(params.row)} size="medium">
-            <ManageAccountsIcon fontSize="large" />
-          </IconButton>
-        </Tooltip>
+        <Stack direction="row" spacing={1}>
+          <Tooltip title="Ver Detalles">
+            <IconButton onClick={() => handleOpenDetailsModal(params.row)} size="small">
+              <VisibilityIcon fontSize="large" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Cambiar Rol">
+            <IconButton onClick={() => handleOpenRoleModal(params.row)} size="small">
+              <ManageAccountsIcon fontSize="large" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       ),
     },
   ];
@@ -274,6 +300,26 @@ export default function AdminUsersGrid() {
           >
             Cambiar Rol
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal para ver detalles del usuario */}
+      <Dialog open={detailsModalOpen} onClose={handleCloseDetailsModal} fullWidth maxWidth="xs">
+        <DialogTitle>Detalles de {selectedUser?.nombre}</DialogTitle>
+        <DialogContent>
+          {selectedUser && (
+            <Stack spacing={1.5} sx={{ mt: 2 }}>
+              <Typography><strong>ID:</strong> {selectedUser.id}</Typography>
+              <Typography><strong>Nombre:</strong> {selectedUser.nombre} {selectedUser.apellido}</Typography>
+              <Typography><strong>Email:</strong> {selectedUser.email}</Typography>
+              <Typography><strong>Rol:</strong> <Chip label={selectedUser.rol} size="small" color={selectedUser.rol === 'admin' ? 'secondary' : selectedUser.rol === 'rrhh' ? 'info' : 'default'} /></Typography>
+              <Typography><strong>Estado:</strong> <Chip label={selectedUser.estado} size="small" color={selectedUser.estado === 'activo' ? 'success' : 'error'} /></Typography>
+              <Typography><strong>Fecha de Creación:</strong> {new Date(selectedUser.createdAt).toLocaleDateString('es-AR')}</Typography>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDetailsModal}>Cerrar</Button>
         </DialogActions>
       </Dialog>
     </Container>

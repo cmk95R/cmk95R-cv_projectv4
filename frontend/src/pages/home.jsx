@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import {
   Box,
   Typography,
@@ -32,6 +32,7 @@ import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import PublicSearchesCarousel from "../components/PublicSearchesCarousel";
 import Footer from '../components/footer';
+import { AuthContext } from '../context/AuthContext';
 // ===== Variants =====
 // Hero: fondo con ken-burns + contenido fade-up
 const heroBgVariants = {
@@ -107,12 +108,20 @@ const areas = [
 
 const Home = () => {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [idxTestimonio, setIdxTestimonio] = React.useState(0);
 
   const nextTestimonio = () => setIdxTestimonio((p) => (p + 1) % testimonios.length);
   const prevTestimonio = () => setIdxTestimonio((p) => (p - 1 + testimonios.length) % testimonios.length);
 
   // Auto-rotate testimonios
+  const handleApplyClick = () => {
+    if (user) {
+      navigate('/profile');
+    } else {
+      navigate('/register');
+    }
+  };
   React.useEffect(() => {
     const t = setInterval(() => nextTestimonio(), 6000);
     return () => clearInterval(t);
@@ -159,7 +168,7 @@ const Home = () => {
               Sumate a un equipo apasionado por la tecnología y la innovación.
             </Typography>
             <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} style={{ marginTop: 24 }}>
-              <Button variant="contained" color="primary" onClick={() => navigate('/register')} sx={{ px: 4, py: 1.5, fontWeight: 'bold' }}>
+              <Button variant="contained" color="primary" onClick={handleApplyClick} sx={{ px: 4, py: 1.5, fontWeight: 'bold' }}>
                 Postularme
               </Button>
             </motion.div>
@@ -331,7 +340,7 @@ const Home = () => {
         <Box sx={{ textAlign: 'center', py: 6, backgroundColor: 'white', borderRadius: 2, boxShadow: 3 }}>
           <Typography variant="h4" gutterBottom>¿Te gustaría trabajar con nosotros?</Typography>
           <Typography variant="h6" sx={{ mb: 3 }}>Subí tu CV y sumate a nuestra base de talentos.</Typography>
-          <Button variant="contained" color="primary" onClick={() => navigate('/register')} sx={{ px: 4, py: 1.5, fontWeight: 'bold' }}>
+          <Button variant="contained" color="primary" onClick={handleApplyClick} sx={{ px: 4, py: 1.5, fontWeight: 'bold' }}>
             Cargar mi CV
           </Button>
         </Box>
