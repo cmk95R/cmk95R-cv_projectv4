@@ -1,7 +1,7 @@
 // src/pages/AdminCandidatesGrid.jsx
 import * as React from "react";
 import {
-  Box, Stack, Paper, Typography, TextField, MenuItem, Tooltip, IconButton,
+  Container, Stack, Paper, Typography, TextField, MenuItem, Tooltip, IconButton,
   Snackbar, Alert, CircularProgress
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
@@ -166,9 +166,9 @@ export default function AdminCandidatesGrid() {
   ];
 
   return (
-    <Box>
-      <Typography variant="h5" sx={{ mb: 2, fontWeight: 700 }}>
-        ABM de Candidatos
+    <Container maxWidth="xl" sx={{ py: 3 }}>
+      <Typography variant="h5" sx={{ mb: 2, fontWeight: 400 }}>
+        Gestión de Candidatos
       </Typography>
 
       <Paper sx={{ p: 2, mb: 2, borderRadius: 2 }} elevation={2}>
@@ -227,6 +227,6 @@ export default function AdminCandidatesGrid() {
           {snack.msg}
         </Alert>
       </Snackbar>
-    </Box>
+    </Container>
   );
 }

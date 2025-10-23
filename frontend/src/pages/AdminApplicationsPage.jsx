@@ -336,7 +336,7 @@ export default function AdminApplicationsPage() {
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       <Stack spacing={2}>
-        <Typography variant="h5" fontWeight={700}>Postulaciones (Admin)</Typography>
+        <Typography variant="h5" fontWeight={400}>Gestión de Postulaciones</Typography>
 
         <Paper variant="outlined" sx={{ p: 2 }}>
           <ApplicationsFilters value={filters} onChange={setFilters} />

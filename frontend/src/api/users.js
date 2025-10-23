@@ -17,4 +17,11 @@ export const listUsersWithCvApi = (params) => api.get("/users/admin", { params }
 export const getUserCvDownloadUrlApi = (userId) => api.get(`/cv/admin/users/${userId}/cv/download`);
 
 
+/**
+ * 🔑 ADMIN: Cambia el estado de un usuario.
+ * @param {string} userId El ID del usuario.
+ * @param {'activo' | 'inactivo'} estado El nuevo estado.
+ */
+export const adminSetUserStatusApi = (userId, estado) => api.patch(`/users/admin/users/${userId}/status`, { estado });
 export const editUserApi = (data) => api.patch("/users/me", data);
+export const adminSetUserRoleApi = (userId, rol) => api.patch(`/users/admin/users/${userId}/role`, { rol });

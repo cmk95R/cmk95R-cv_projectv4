@@ -3,7 +3,7 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 
 const { Schema } = mongoose;
-const roles = ["user", "admin"];
+const roles = ["user", "admin", "rrhh"];
 
 const direccionSchema = new Schema({
     pais: { type: String, trim: true, default: "Argentina" },
@@ -35,6 +35,7 @@ const userSchema = new Schema(
             },
         },
         nacimiento: { type: Date, trim: true },
+
         rol: { type: String, enum: roles, default: "user" },
         direccion: { type: direccionSchema, default: () => ({}) },
         providers: {

@@ -1,7 +1,7 @@
 // src/pages/AdminSearches.jsx
 import * as React from "react";
 import {
-  Box, Paper, Stack, Typography, Button, TextField, MenuItem,
+  Container, Paper, Stack, Typography, Button, TextField, MenuItem,
   Snackbar, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
   Divider, FormControl, InputLabel, Select, Chip
 } from "@mui/material";
@@ -226,7 +226,7 @@ export default function AdminSearches() {
   ];
 
   return (
-    <Box sx={{ bgcolor: "#CFE6FF", p: 4, minHeight: "100vh" }}>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 8 }}>
       <Typography variant="h5" gutterBottom>ABM de Búsquedas</Typography>
 
       {/* Filtros */}
@@ -381,6 +381,6 @@ export default function AdminSearches() {
           {snack.msg}
         </Alert>
       </Snackbar>
-    </Box>
+    </Container>
   );
 }

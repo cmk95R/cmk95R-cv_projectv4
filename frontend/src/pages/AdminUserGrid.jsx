@@ -1,127 +1,198 @@
 import * as React from "react";
 import {
-  Box, Stack, Button, Chip, TextField, MenuItem,
-  Snackbar, Alert, Paper, Typography, CircularProgress
+  Box, Stack, Button, Chip, TextField, MenuItem,Container,
+  Snackbar, Alert, Paper, Typography, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select,
+  IconButton, Tooltip
 } from "@mui/material";
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import ToggleOnIcon from '@mui/icons-material/ToggleOn';
+import ToggleOffIcon from '@mui/icons-material/ToggleOff';
 import { DataGrid } from "@mui/x-data-grid";
-import { listUsersApi, makeAdminApi, revokeAdminApi } from "../api/users";
-
-function formatDateSafe(v) {
-  if (!v) return "";
-  const d =
-    v instanceof Date ? v :
-    typeof v === "number" ? new Date(v) :
-    typeof v === "string" ? new Date(v) :
-    v?.$date ? new Date(v.$date) :
-    null;
-  return d && !isNaN(d) ? d.toLocaleDateString() : "";
-}
+// Usamos la API que soporta paginación y filtros
+import { listUsersWithCvApi, adminSetUserRoleApi, adminSetUserStatusApi } from "../api/users";
 
 export default function AdminUsersGrid() {
+  // Estado para manejar la paginación y datos del servidor
+  const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 10 });
+  const [rowCount, setRowCount] = React.useState(0);
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [snack, setSnack] = React.useState({ open: false, severity: "success", msg: "" });
+
+  // Estado para el modal de cambio de rol
+  const [roleModalOpen, setRoleModalOpen] = React.useState(false);
+  const [selectedUser, setSelectedUser] = React.useState(null);
+  const [newRole, setNewRole] = React.useState('');
+  
+  // Estado para filtros
   const [query, setQuery] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState("all");
+  const [queryTimeout, setQueryTimeout] = React.useState(null);
 
   const fetchUsers = React.useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await listUsersApi();
-      const mapped = (data?.users ?? []).map((u) => ({
+      // Preparamos los parámetros para la API
+      const params = {
+        page: paginationModel.page + 1, // La API espera página base 1
+        limit: paginationModel.pageSize,
+        q: query,
+        rol: roleFilter === "all" ? undefined : roleFilter,
+      };
+
+      const { data } = await listUsersWithCvApi(params);
+      
+      const mapped = (data?.items ?? []).map((u) => ({
         id: u._id || u.id,
         nombre: u.nombre ?? "",
         apellido: u.apellido ?? "",
         email: u.email ?? "",
         rol: u.rol ?? "user",
-        createdAt: u.createdAt ?? u.created_at ?? u?.timestamps ?? null,
+        estado: u.estado ?? 'activo',
+        createdAt: u.createdAt,
+           // El backend ya lo provee en el campo correcto
       }));
+
       setRows(mapped);
+      setRowCount(data?.total ?? 0);
+
     } catch (e) {
       console.error(e);
       setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudieron cargar los usuarios" });
+      // En caso de error, reseteamos el estado
+      setRows([]);
+      setRowCount(0);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [paginationModel, query, roleFilter]);
 
-  React.useEffect(() => { fetchUsers(); }, [fetchUsers]);
+  React.useEffect(() => {
+    // Usamos un debounce para no llamar a la API en cada tecla presionada
+    if (queryTimeout) clearTimeout(queryTimeout);
+    const timeoutId = setTimeout(() => fetchUsers(), 500);
+    setQueryTimeout(timeoutId);
 
-  const promote = async (row) => {
-    try {
-      await makeAdminApi(row.id);
-      setRows(prev => prev.map(r => r.id === row.id ? { ...r, rol: "admin" } : r));
-      setSnack({ open: true, severity: "success", msg: `Ahora ${row.nombre} es admin` });
-    } catch (e) {
-      console.error(e);
-      setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo promover" });
-    }
+    return () => clearTimeout(timeoutId);
+  }, [fetchUsers]); // fetchUsers ya depende de los filtros y paginación
+
+  // --- Lógica del modal de cambio de rol ---
+  const handleOpenRoleModal = (user) => {
+    setSelectedUser(user);
+    setNewRole(user.rol);
+    setRoleModalOpen(true);
   };
 
-  const demote = async (row) => {
+  const handleCloseRoleModal = () => {
+    setRoleModalOpen(false);
+    setSelectedUser(null);
+    setNewRole('');
+  };
+
+  const handleRoleChange = async () => {
+    if (!selectedUser || selectedUser.rol === newRole) {
+      handleCloseRoleModal();
+      return;
+    }
     try {
-      await revokeAdminApi(row.id);
-      setRows(prev => prev.map(r => r.id === row.id ? { ...r, rol: "user" } : r));
-      setSnack({ open: true, severity: "success", msg: `Rol de ${row.nombre} cambiado a user` });
+      await adminSetUserRoleApi(selectedUser.id, newRole);
+      setRows(prev => prev.map(r => r.id === selectedUser.id ? { ...r, rol: newRole } : r));
+      setSnack({ open: true, severity: "success", msg: `Rol de ${selectedUser.nombre} cambiado a ${newRole}` });
     } catch (e) {
       console.error(e);
-      setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo revertir" });
+      setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo cambiar el rol" });
+    } finally {
+      handleCloseRoleModal();
+    }
+  };  
+
+  const handleToggleStatus = async (user) => {
+    if (!user) return;
+    const newStatus = user.estado === 'activo' ? 'inactivo' : 'activo';
+    try {
+      await adminSetUserStatusApi(user.id, newStatus);
+      setRows(prev => prev.map(r => r.id === user.id ? { ...r, estado: newStatus } : r));
+      setSnack({ open: true, severity: "success", msg: `Usuario ahora está ${newStatus}` });
+    } catch (e) {
+      console.error(e);
+      setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo cambiar el estado" });
     }
   };
 
   const columns = [
-    { field: "nombre", headerName: "Nombre", flex: 1, minWidth: 150 },
-    { field: "apellido", headerName: "Apellido", flex: 1, minWidth: 150 },
-    { field: "email", headerName: "Email", flex: 1.4, minWidth: 220 },
+    { field: "nombre", headerName: "Nombre", flex: 1, minWidth: 150,align: "center", headerAlign: "center"},
+    { field: "apellido", headerName: "Apellido", flex: 1, minWidth: 150,align: "center", headerAlign: "center" },
+    { field: "email", headerName: "Email", flex: 1.5, minWidth: 220, align: "center", headerAlign: "center" },
     {
       field: "rol",
       headerName: "Rol",
-      width: 120,
+      align: "center", headerAlign: "center",
+      flex: 1,
+      minWidth: 100,
+      
       renderCell: (params) => (
-        <Chip label={params.value} color={params.value === "admin" ? "secondary" : "default"} size="small" />
+        <Chip label={params.value} color={params.value === "admin" ? "secondary" : params.value === 'rrhh' ? 'info' : "default"} size="small" />
       ),
+    },
+    {
+      field: "estado",
+      headerName: "Estado",
+      flex: 1,
+      minWidth: 100,
+      
+      align: "center",
+      headerAlign: "center",
+      renderCell: (params) => {
+        const isActivo = params.value === 'activo';
+        return (
+          <Tooltip title={isActivo ? 'Deshabilitar Usuario' : 'Habilitar Usuario'} >
+            <IconButton onClick={() => handleToggleStatus(params.row)} color={isActivo ? 'success' : 'error'} size="large">
+              {isActivo ? <ToggleOnIcon fontSize="large" /> : <ToggleOffIcon fontSize="large" />}
+            </IconButton> 
+          </Tooltip>
+        );
+      }
     },
     {
       field: "createdAt",
       headerName: "Creado",
-      width: 160,
-      valueGetter: (params) => formatDateSafe(params?.row?.createdAt),
+      type: "dateTime", // 1. Indicamos que es una columna de fecha/hora
+      flex: 1,
+      minWidth: 150,
+      align: "center", headerAlign: "center",
+      width: 150,
+      // 2. valueGetter devuelve un objeto Date para que el ordenamiento funcione
+      valueGetter: (value) => {
+        return value ? new Date(value) : null;
+      },
+      // 3. valueFormatter se encarga solo de la presentación visual
+      valueFormatter: (value) => {
+        return value ? value.toLocaleDateString('es-AR') : '';
+      },
     },
     {
       field: "actions",
       headerName: "Acciones",
-      width: 220,
+      flex: 1,
+      minWidth: 100,
+      
+      align: "center", headerAlign: "center",
       sortable: false,
-      renderCell: (params) => {
-        const isAdmin = params.row.rol === "admin";
-        return (
-          <Stack direction="row" spacing={1}>
-            {!isAdmin ? (
-              <Button size="small" variant="outlined" onClick={() => promote(params.row)}>Hacer admin</Button>
-            ) : (
-              <Button size="small" color="warning" variant="outlined" onClick={() => demote(params.row)}>Quitar admin</Button>
-            )}
-          </Stack>
-        );
-      },
+      renderCell: (params) => (
+        <Tooltip title="Cambiar Rol">
+          <IconButton onClick={() => handleOpenRoleModal(params.row)} size="medium">
+            <ManageAccountsIcon fontSize="large" />
+          </IconButton>
+        </Tooltip>
+      ),
     },
   ];
 
-  const filtered = (rows ?? []).filter(r => {
-    const q = query.trim().toLowerCase();
-    const matchesQuery =
-      !q ||
-      r.nombre?.toLowerCase().includes(q) ||
-      r.apellido?.toLowerCase().includes(q) ||
-      r.email?.toLowerCase().includes(q);
-    const matchesRole = roleFilter === "all" ? true : r.rol === roleFilter;
-    return matchesQuery && matchesRole;
-  });
-
   return (
-    <Box>
+      <Container maxWidth="xl" sx={{ py: 3 }}>
       <Typography variant="h5" sx={{ mb: 2, fontWeight: 400 }}>
-        ABM de Usuarios
+        Gestión de Usuarios
       </Typography>
 
       <Paper sx={{ p: 2, mb: 2, borderRadius: 2 }} elevation={2}>
@@ -142,26 +213,27 @@ export default function AdminUsersGrid() {
             <MenuItem value="all">Todos</MenuItem>
             <MenuItem value="user">User</MenuItem>
             <MenuItem value="admin">Admin</MenuItem>
+            <MenuItem value="rrhh">RRHH</MenuItem>
           </TextField>
-          {/* <Button onClick={fetchUsers} variant="outlined">Actualizar</Button> */}
         </Stack>
       </Paper>
 
       <Paper sx={{ height: 520, borderRadius: 2 }} elevation={2}>
-        {loading ? (
-          <Stack alignItems="center" justifyContent="center" sx={{ height: "100%" }}>
-            <CircularProgress />
-          </Stack>
-        ) : (
-          <DataGrid
-            rows={Array.isArray(filtered) ? filtered : []}
-            columns={columns}
-            disableRowSelectionOnClick
-            pageSizeOptions={[5, 10, 25]}
-            initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
-            getRowId={(row) => row.id}
-          />
-        )}
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          loading={loading}
+          // Configuración para paginación del lado del servidor
+          paginationMode="server"
+          rowCount={rowCount}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          // Opciones de tamaño de página
+          pageSizeOptions={[5, 10, 25, 50]}
+          // Otras props
+          disableRowSelectionOnClick
+          getRowId={(row) => row.id}
+        />
       </Paper>
 
       <Snackbar
@@ -174,6 +246,36 @@ export default function AdminUsersGrid() {
           {snack.msg}
         </Alert>
       </Snackbar>
-    </Box>
+
+      {/* Modal para cambiar el rol */}
+      <Dialog open={roleModalOpen} onClose={handleCloseRoleModal} fullWidth maxWidth="xs">
+        <DialogTitle>Cambiar rol de {selectedUser?.nombre}</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel id="role-select-label">Rol</InputLabel>
+            <Select
+              labelId="role-select-label"
+              value={newRole}
+              label="Rol"
+              onChange={(e) => setNewRole(e.target.value)}
+            >
+              <MenuItem value="user">User</MenuItem>
+              <MenuItem value="admin">Admin</MenuItem>
+              <MenuItem value="rrhh">RRHH</MenuItem>
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseRoleModal}>Cerrar</Button>
+          <Button
+            onClick={handleRoleChange}
+            variant="contained"
+            disabled={!selectedUser || selectedUser.rol === newRole}
+          >
+            Cambiar Rol
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
   );
 }

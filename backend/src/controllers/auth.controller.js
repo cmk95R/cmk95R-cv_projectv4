@@ -4,7 +4,6 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { normalizeDireccion } from "../utils/normalize.js"; // <-- ¡NUEVA IMPORTACIÓN!
-import { sendWelcomeEmail } from "../services/email.services.js";
 import { validationResult } from "express-validator";
 
 const signToken = (user) =>
@@ -50,13 +49,9 @@ export const register = async (req, res, next) => {
 
     const user = await User.create(payload);
 
-    // --- INICIO: LÓGICA DE BIENVENIDA ---
-    // 1. Enviar correo de bienvenida (sin verificación)
-    await sendWelcomeEmail(user);
-    console.log(`[AUTH] Correo de bienvenida enviado a ${user.email}`);
-
+    // El registro fue exitoso, no se envía correo.
     res.status(201).json({
-      message: "Registro exitoso. ¡Bienvenido! Revisa tu correo para más información.",
+      message: "Registro exitoso. ¡Bienvenido!",
     });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.email) {

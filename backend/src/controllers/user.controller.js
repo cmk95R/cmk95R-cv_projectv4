@@ -159,6 +159,7 @@ export const listUsersWithCv = async (req, res, next) => {
           rol: 1,
           telefono: 1,
           nacimiento: 1,
+          estado: 1, // <-- Añadir estado a la proyección
           createdAt: 1,
           updatedAt: 1,
           // dirección básica para "Ubicación" en el front
@@ -204,4 +205,56 @@ export const listUsersWithCv = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+};
+
+/**
+ * 🔑 ADMIN: Cambia el estado de un usuario (activo/inactivo).
+ * PATCH /admin/users/:id/status
+ */
+export const adminSetUserStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { estado } = req.body;
+
+    if (!['activo', 'inactivo'].includes(estado)) {
+      return res.status(400).json({ message: "Estado no válido. Debe ser 'activo' o 'inactivo'." });
+    }
+
+    const u = await User.findByIdAndUpdate(
+      id,
+      { estado },
+      { new: true, runValidators: true }
+    ).select("_id nombre apellido email rol createdAt estado");
+
+    if (!u) return res.status(404).json({ message: "Usuario no encontrado" });
+    res.json({ message: `Usuario ahora está ${estado}`, user: u });
+  } catch (e) {
+    next(e);
+  }
+};
+
+/**
+ * 🔑 ADMIN: Cambia el rol de un usuario.
+ * PATCH /admin/users/:id/role
+ */
+export const adminSetUserRole = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { rol } = req.body;
+
+    // Lista de roles permitidos para evitar valores arbitrarios
+    const allowedRoles = ['user', 'admin', 'rrhh'];
+    if (!rol || !allowedRoles.includes(rol)) {
+      return res.status(400).json({ message: "Rol no válido o no proporcionado." });
+    }
+
+    const u = await User.findByIdAndUpdate(
+      id,
+      { rol },
+      { new: true, runValidators: true }
+    ).select("_id nombre apellido email rol createdAt estado");
+
+    if (!u) return res.status(404).json({ message: "Usuario no encontrado" });
+    res.json({ message: `Rol del usuario actualizado a ${rol}`, user: u });
+  } catch (e) { next(e); }
 };

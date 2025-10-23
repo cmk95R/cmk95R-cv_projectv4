@@ -25,7 +25,7 @@ import FindInPageIcon from '@mui/icons-material/FindInPage';
 import LogoutIcon from "@mui/icons-material/Logout";
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
-const drawerWidth = 240;
+const drawerWidth = 280;
 
 const openedMixin = (theme) => ({
   width: drawerWidth,
@@ -128,14 +128,28 @@ export default function DashboardLayout() {
 
   const adminMenu = [
     { text: "Inicio", icon: <HomeIcon />, path: "/admin/dashboard" },
-    { text: "ABM de Búsquedas", icon: <WorkIcon />, path: "/admin/searches" },
-    { text: "ABM de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
-    { text: "ABM de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },
-    { text: "ABM de Postulaciones", icon: <AssignmentIndIcon />, path: "/admin/applications" },
+    { text: "Gestión de Búsquedas", icon: <WorkIcon />, path: "/admin/searches" },
+    { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
+    { text: "Gestión de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },
+    { text: "Gestión de Postulaciones", icon: <AssignmentIndIcon />, path: "/admin/applications" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
-  const menuItems = !user ? guestMenu : isAdmin ? adminMenu : userMenu;
+  const rrhhMenu = [
+    { text: "Inicio", icon: <HomeIcon />, path: "/" },
+    { text: " Gestión de Busquedas", icon: <WorkIcon />, path: "/admin/searches" },
+    { text: " Gestión de Postulaciones", icon: <AssignmentIndIcon />, path: "/admin/applications" },
+    { text: " Gestión de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates"},
+    { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
+  ]  
+
+  const getMenuItems = () => {
+    if (!user) return guestMenu;
+    if (user.rol === 'admin') return adminMenu;
+    if (user.rol === 'rrhh') return rrhhMenu;
+    return userMenu;
+  };
+  const menuItems = getMenuItems();
 
   const handleItemClick = (item) => {
     if (item.action === "logout") {
