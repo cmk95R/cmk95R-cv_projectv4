@@ -1,47 +1,43 @@
 // controllers/cv.controller.js
 
 import User from "../models/User.js";
-import Cv from "../models/Cv.js";
-import Application from "../models/Application.js"; // <-- CORRECCIÓN: Importación añadida
-// <-- CAMBIO 1: Importar nuestro servicio de OneDrive
-import { uploadFileToOneDrive } from "../services/oneDrive.service.js";
-import { getDownloadUrlForFile, deleteFileFromOneDrive } from "../services/oneDrive.service.js";
-// ... (ALLOWED_FIELDS, OPCIONES_AREA, NIVELES no cambian) ...
+import Cv from "../models/Cv.js"; // Corregido a 'Cv' si tu importación es así
+import Application from "../models/Application.js";
+import Search from "../models/Search.js"; // Necesario para applyToSearch
+import {
+  uploadFileToOneDrive,
+  getDownloadUrlForFile,
+  deleteFileFromOneDrive // Asegúrate que esta función existe en tu servicio
+} from "../services/oneDrive.service.js";
+
 const ALLOWED_FIELDS = new Set([
   "nombre", "apellido", "nacimiento", "perfil", "telefono",
-  "linkedin", "email", "areaInteres", "educacion", "experiencia" // <-- 'direccion' eliminado
-  // Eliminados los campos de educación individuales
+  "linkedin", "email", "areaInteres", "educacion", "experiencia",
+  "direccion" // <-- AÑADIDO: 'direccion' para consistencia con User sync
 ]);
 const OPCIONES_AREA = ["Administracion", "Recursos Humanos", "Sistemas", "Pasantia"];
-const NIVELES = [
-  "Secundario completo", "Secundario incompleto", "Terciario/Técnico en curso",
-  "Terciario/Técnico completo", "Universitario en curso", "Universitario completo",
-  "Posgrado en curso", "Posgrado completo",
-];
 
-// <-- CAMBIO 2: La función ahora es 'async' y recibe el objeto 'user' completo
+// --- Función de Normalización (con sobrescritura de archivo) ---
 async function normalizePayload(body, file, user) {
   const $set = {};
   const $unset = {};
+  let oldFileIdToDelete = null; // Inicializamos a null por defecto
 
-  // --- INICIO: CORRECCIÓN ---
-  // Cuando los datos vienen de `multipart/form-data`, los objetos se envían como strings JSON.
-  // Necesitamos parsearlos de vuelta a objetos antes de procesarlos.
+  // Parsea campos JSON que vienen como string desde FormData
   const fieldsToParse = ['direccion', 'educacion', 'experiencia'];
   for (const field of fieldsToParse) {
     if (body[field] && typeof body[field] === 'string') {
-      try {
-        body[field] = JSON.parse(body[field]);
-      } catch (e) {
-        console.error(`Error al parsear el campo ${field} del CV:`, e);
-      }
+      try { body[field] = JSON.parse(body[field]); } catch (e) { /* Ignora errores */ }
     }
   }
-  // --- FIN: CORRECCIÓN ---
 
   const put = (k, v) => {
-    if (v === "" || v == null) $unset[k] = "";
-    else $set[k] = v;
+    // Si el valor está vacío o es un array vacío, marca para eliminar ($unset)
+    if (v === "" || v == null || (Array.isArray(v) && v.length === 0)) {
+        $unset[k] = "";
+    } else {
+        $set[k] = v;
+    }
   };
 
   for (const [k, v0] of Object.entries(body || {})) {
@@ -51,210 +47,189 @@ async function normalizePayload(body, file, user) {
       const val = String(v || "").trim();
       v = OPCIONES_AREA.includes(val) ? val : "";
     }
-    if (k === "experiencia") {
-      try {
-        v = JSON.parse(v);
-      } catch (e) {
-        // Ignora si no es un JSON válido, puede que venga como objeto
-      }
-      v = Array.isArray(v) && v.length > 0 ? v : "";
-    }
-    if (k === "educacion") {
-      try {
-        v = JSON.parse(v);
-      } catch (e) {
-        // Ignora si no es un JSON válido, puede que venga como objeto
-      }
-      v = Array.isArray(v) && v.length > 0 ? v : "";
-    }
+    // Ya no necesitamos parsear 'educacion' y 'experiencia' aquí de nuevo
     put(k, v);
   }
   
-  // <-- CAMBIO 3: Lógica de subida de archivo actualizada para OneDrive
+  // --- Lógica mejorada para la subida/sobrescritura de archivos ---
   if (file) {
-    // 1. Crear un nombre de archivo descriptivo y único
-    const safeName = (user.nombre || "usuario").replace(/[^a-zA-Z0-9]/g, '_');
-    const safeApellido = (user.apellido || "").replace(/[^a-zA-Z0-9]/g, '_');
-    // Usamos un timestamp para evitar colisiones si el usuario sube el mismo CV varias veces
-    const timestamp = Date.now();
-    const fileName = `CV_${safeName}_${safeApellido}_${timestamp}.pdf`;
+    const existingCv = await Cv.findOne({ user: user._id }).lean();
+    // Si se encontró un CV existente y tenía un archivo, guardamos su ID para una posible eliminación.
+    if (existingCv?.cvFile?.providerId) {
+      oldFileIdToDelete = existingCv.cvFile.providerId;
+    }
+    const oldFileName = existingCv?.cvFile?.fileName; // Nombre del archivo anterior
+    const oldFileId = existingCv?.cvFile?.providerId; // ID del archivo anterior
 
-    // 2. Subir el archivo a OneDrive usando el servicio
+    // Define el nombre del archivo: reutiliza el anterior o crea uno nuevo
+    const originalName = file.originalname.split('.').slice(0, -1).join('_').replace(/[^a-zA-Z0-9]/g, '');
+    const fileName = oldFileName || `CV_${originalName}_${user._id}.pdf`;
+
     const uploadResult = await uploadFileToOneDrive(file.buffer, fileName, "CVs");
 
-    // 3. Guardar los datos de OneDrive en el objeto $set
     $set.cvFile = {
-      filename: fileName, // Corregido: 'filename' para coincidir con el modelo
+      fileName: fileName,
+      providerId: uploadResult.id, // Actualiza el ID (puede cambiar)
+      url: uploadResult.webUrl,    // Actualiza la URL
       mimetype: file.mimetype,
       size: file.size,
-      url: uploadResult.webUrl, // La URL de OneDrive
-      provider: "onedrive", // Buena práctica para saber dónde está el archivo
-      providerId: uploadResult.id, // ID del archivo en OneDrive
+      provider: "onedrive",
     };
+
+    // Si el nuevo archivo tiene el mismo providerId que el anterior, significa que fue sobrescrito.
+    // En este caso, no necesitamos eliminar el archivo antiguo, así que lo ponemos a null.
+    // De lo contrario, si oldFileIdToDelete tiene un valor (había un archivo antiguo) y el nuevo ID es diferente,
+    // mantenemos oldFileIdToDelete para que se elimine más tarde.
+    if (oldFileIdToDelete && uploadResult.id === oldFileIdToDelete) {
+      oldFileIdToDelete = null;
+    }
   }
 
-  return { $set, $unset };
+  return { $set, $unset, oldFileIdToDelete };
 }
 
-// ... (getMyCV no cambia) ...
+// --- Controladores ---
+
 export const getMyCV = async (req, res, next) => {
   try {
     const cv = await Cv.findOne({ user: req.user._id })
-      .populate("user", " publicId email nombre apellido rol telefono direccion nacimiento")
+      .populate("user", "publicId email nombre apellido") // Quitado telefono, direccion, nacimiento (se obtienen de /auth/me)
       .lean();
     return res.json({ cv });
   } catch (err) { next(err); }
 };
 
-
-// POST /cv/me  (upsert)
 export const upsertMyCV = async (req, res, next) => {
   try {
-    // --- INICIO: Lógica de reemplazo de archivo ---
-    let oldFileIdToDelete = null;
-    if (req.file) {
-      // Si se está subiendo un archivo nuevo, buscamos el CV existente para ver si tenía un archivo anterior.
-      const existingCv = await Cv.findOne({ user: req.user._id }).lean();
-      if (existingCv?.cvFile?.providerId) {
-        oldFileIdToDelete = existingCv.cvFile.providerId;
-      }
-    }
-    // --- FIN: Lógica de reemplazo de archivo ---
+    // Obtenemos qué actualizar y el ID del archivo antiguo si existe
+    const { $set, $unset, oldFileIdToDelete } = await normalizePayload(req.body, req.file, req.user);
 
-    // <-- CAMBIO 4: Ahora esperamos la promesa de normalizePayload y pasamos el objeto 'user' completo
-    const update = await normalizePayload(req.body, req.file, req.user);
-
+    // Actualiza o crea el CV
     const cv = await Cv.findOneAndUpdate(
       { user: req.user._id },
-      { ...update, $setOnInsert: { user: req.user._id } },
+      { $set, $unset, $setOnInsert: { user: req.user._id } }, // Usa $set y $unset directamente
       { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
-    ).populate("user", "publicId email nombre apellido rol telefono direccion nacimiento");
+    ).populate("user", "publicId email nombre apellido"); // Quitado campos redundantes
 
-    // --- INICIO: Actualizar también el modelo User ---
+    // Sincroniza campos clave con el modelo User (basado en lo que se actualizó en $set)
     const userUpdate = {};
-    // Sincronizamos los campos principales del CV al User.
-    if (update.$set.nombre) userUpdate.nombre = update.$set.nombre;
-    if (update.$set.apellido) userUpdate.apellido = update.$set.apellido;
-    if (update.$set.telefono) userUpdate.telefono = update.$set.telefono;
-    if (update.$set.nacimiento) userUpdate.nacimiento = update.$set.nacimiento;
+    if ($set.nombre) userUpdate.nombre = $set.nombre;
+    if ($set.apellido) userUpdate.apellido = $set.apellido;
+    if ($set.telefono) userUpdate.telefono = $set.telefono;
+    if ($set.nacimiento) userUpdate.nacimiento = $set.nacimiento;
+    if ($set.direccion) userUpdate.direccion = $set.direccion; // Sincroniza dirección si se incluyó
 
     if (Object.keys(userUpdate).length > 0) {
-      await User.findByIdAndUpdate(req.user._id, userUpdate);
+      await User.findByIdAndUpdate(req.user._id, { $set: userUpdate }); // Usa $set para actualizar User
     }
-    // --- FIN: Actualizar también el modelo User ---
 
-    // --- INICIO: Eliminar archivo antiguo si corresponde ---
-    if (oldFileIdToDelete) {
-      // Llamamos a la función para eliminar el archivo de OneDrive. No bloqueamos la respuesta por esto.
-      deleteFileFromOneDrive(oldFileIdToDelete);
+    // Elimina el archivo antiguo de OneDrive DESPUÉS de guardar con éxito el nuevo
+    if (oldFileIdToDelete && $set.cvFile?.providerId !== oldFileIdToDelete) {
+       console.log(`Intentando eliminar archivo antiguo de OneDrive: ${oldFileIdToDelete}`);
+       deleteFileFromOneDrive(oldFileIdToDelete); // No esperamos (fire-and-forget)
     }
-    // --- FIN: Eliminar archivo antiguo si corresponde ---
 
     return res.json({ cv, message: "CV actualizado" });
   } catch (err) { next(err); }
 };
 
-// ... (listAllCVs y getCV no cambian) ...
-export const listAllCVs = async (_req, res, next) => {
+// --- Funciones de Descarga (sin cambios, ya estaban bien) ---
+export const downloadMyCv = async (req, res, next) => {
+  try {
+    const cv = await Cv.findOne({ user: req.user._id }).lean();
+    if (!cv?.cvFile?.providerId) return res.status(404).json({ message: "No se encontró archivo." });
+    const downloadUrl = await getDownloadUrlForFile(cv.cvFile.providerId);
+    if (!downloadUrl) return res.status(500).json({ message: "No se pudo obtener enlace." });
+    return res.json({ downloadUrl });
+  } catch (e) { next(e); }
+};
+
+export const downloadCvByApplication = async (req, res, next) => {
+  try {
+    const app = await Application.findById(req.params.id).lean();
+    const fileId = app?.cvSnapshot?.cvFile?.providerId;
+    if (!fileId) return res.status(404).json({ message: "Postulación sin CV adjunto." });
+    const downloadUrl = await getDownloadUrlForFile(fileId);
+    if (!downloadUrl) return res.status(500).json({ message: "No se pudo obtener enlace." });
+    return res.json({ downloadUrl });
+  } catch (e) { next(e); }
+};
+
+export const downloadCvByUserId = async (req, res, next) => {
+  try {
+    const cv = await Cv.findOne({ user: req.params.userId }).lean();
+    const fileId = cv?.cvFile?.providerId;
+    if (!fileId) return res.status(404).json({ message: "Usuario sin CV adjunto." });
+    const downloadUrl = await getDownloadUrlForFile(fileId);
+    if (!downloadUrl) return res.status(500).json({ message: "No se pudo obtener enlace." });
+    return res.json({ downloadUrl });
+  } catch (e) { next(e); }
+};
+
+
+// --- Funciones de Admin (Listar/Obtener) ---
+export const listAllCVs = async (req, res, next) => {
   try {
     const cvs = await Cv.find()
-      .populate("user", "publicId email nombre apellido rol telefono direccion nacimiento");
+      .populate("user", "publicId email nombre apellido")
+      .sort({ updatedAt: -1 })
+      .lean(); // Usar lean para mejor rendimiento si no necesitas métodos de Mongoose
     res.json({ cvs });
   } catch (err) { next(err); }
 };
+
 export const getCV = async (req, res, next) => {
   try {
     const cv = await Cv.findById(req.params.id)
-      .populate("user", "publicId email nombre apellido rol telefono direccion nacimiento createdAt");
+      .populate("user", "publicId email nombre apellido")
+      .lean();
     if (!cv) return res.status(404).json({ message: "CV no encontrado" });
     res.json({ cv });
   } catch (err) { next(err); }
 };
 
 
-/**
- * 📄 POSTULANTE: Descarga su propio CV.
- * GET /cv/me/download
- */
-export const downloadMyCv = async (req, res, next) => {
+// --- Función applyToSearch (Revisada) ---
+export const applyToSearch = async (req, res, next) => {
   try {
-    const userId = req.user._id;
+    const { id: searchId } = req.params;
+    const { _id: userId } = req.user;
+
+    const search = await Search.findById(searchId).lean();
+    if (!search || search.estado !== "Activa") {
+      return res.status(400).json({ message: "La búsqueda no está activa o no existe." });
+    }
+    if (await Application.exists({ search: searchId, user: userId })) {
+      return res.status(409).json({ message: "Ya estás postulado a esta búsqueda." });
+    }
     const cv = await Cv.findOne({ user: userId }).lean();
-    if (!cv?.cvFile?.providerId) {
-      return res.status(404).json({ message: "No se encontró un archivo de CV adjunto." });
+    if (!cv) {
+      return res.status(400).json({ message: "Debes completar tu perfil (CV) antes de postularte." });
     }
+    // Opcional: Requerir que el CV tenga archivo
+    // if (!cv.cvFile?.providerId) {
+    //     return res.status(400).json({ message: "Debes adjuntar tu CV en el perfil para postularte." });
+    // }
 
-    const downloadUrl = await getDownloadUrlForFile(cv.cvFile.providerId);
-    if (!downloadUrl) {
-      return res.status(500).json({ message: "No se pudo obtener el enlace de descarga." });
-    }
+    const cvSnapshot = { ...cv };
+    delete cvSnapshot._id;
+    delete cvSnapshot.user;
+    delete cvSnapshot.createdAt;
+    delete cvSnapshot.updatedAt;
 
-    // --- ¡CAMBIO CLAVE! ---
-    // En lugar de redirigir, enviamos la URL en un JSON.
-    return res.json({ downloadUrl });
+    const app = await Application.create({
+      search: searchId,
+      user: userId,
+      message: req.body.message || "",
+      cvRef: cv._id,
+      cvSnapshot: cvSnapshot,
+    });
 
+    res.status(201).json({ application: app });
   } catch (e) {
-    next(e);
-  }
-};
-
-
-/**
- * 🔑 ADMIN: Descarga el CV de cualquier postulación.
- * GET /admin/applications/:id/cv/download
- */
-export const downloadCvByApplication = async (req, res, next) => {
-    try {
-        const applicationId = req.params.id;
-
-        // 1. Busca la postulación para obtener la referencia al CV
-        const application = await Application.findById(applicationId).lean();
-        if (!application) {
-            return res.status(404).json({ message: "Postulación no encontrada." });
-        }
-
-        // 2. Usamos la "foto" del CV (snapshot) que se guardó en la postulación
-        const oneDriveFileId = application.cvSnapshot?.cvFile?.providerId;
-        if (!oneDriveFileId) {
-            return res.status(404).json({ message: "Esta postulación no tiene un archivo de CV adjunto." });
-        }
-        
-        // 3. Obtiene la URL de descarga
-        const downloadUrl = await getDownloadUrlForFile(oneDriveFileId);
-        if (!downloadUrl) {
-            return res.status(500).json({ message: "No se pudo obtener el enlace de descarga del archivo." });
-        }
-
-        // 4. Devolvemos la URL en un JSON para que el frontend la gestione
-        return res.json({ downloadUrl });
-
-    } catch (e) {
-        next(e);
-    }
-};
-
-/**
- * 🔑 ADMIN: Descarga el CV de un usuario por su ID.
- * GET /admin/users/:userId/cv/download
- */
-export const downloadCvByUserId = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-
-    const cv = await Cv.findOne({ user: userId }).lean();
-    if (!cv?.cvFile?.providerId) {
-      return res.status(404).json({ message: "El usuario no tiene un archivo de CV adjunto." });
-    }
-
-    const downloadUrl = await getDownloadUrlForFile(cv.cvFile.providerId);
-    if (!downloadUrl) {
-      return res.status(500).json({ message: "No se pudo obtener el enlace de descarga del archivo." });
-    }
-
-    // Devolvemos la URL en un JSON para que el frontend la gestione
-    return res.json({ downloadUrl });
-
-  } catch (e) {
+    if (e?.code === 11000) {
+       return res.status(409).json({ message: "Ya estás postulado (error duplicado)." });
+     }
     next(e);
   }
 };

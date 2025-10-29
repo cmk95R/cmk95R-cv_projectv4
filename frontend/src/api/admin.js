@@ -1,3 +1,5 @@
+// frontend/src/api/admin.js
 import api from "./client";
 
-export const getDashboardDataApi = () => api.get("/users/dashboard"); // ✅ Corrected route
+// Calls GET /api/admin/dashboard
+export const getDashboardDataApi = () => api.get("/admin/dashboard");

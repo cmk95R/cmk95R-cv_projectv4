@@ -131,7 +131,7 @@ export default function Login() {
     // Pasamos redirectTo para que el backend pueda redirigirnos luego del callback
     if (!API_URL) return alert("Falta VITE_API_URL en el .env del front");
     // usamos 'state' para transportar redirectTo
-    const url = `${API_URL}/auth/${provider}?state=${encodeURIComponent(redirectTo)}`;
+    const url = `${API_URL}/api/auth/${provider}?state=${encodeURIComponent(redirectTo)}`;
     window.location.href = url;
   };
 

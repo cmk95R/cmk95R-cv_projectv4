@@ -18,7 +18,9 @@ export function initGooglePassport() {
             {
                 clientID: GOOGLE_CLIENT_ID,
                 clientSecret: GOOGLE_CLIENT_SECRET,
-                callbackURL: `${BASE_URL.replace(/\/+$/, "")}/auth/google/callback`,
+                // --- CORRECCIÓN: La callbackURL debe apuntar a la ruta del backend ---
+                // No debe depender del BASE_URL del frontend.
+                callbackURL: `/api/auth/google/callback`,
             },
             async (_accessToken, _refreshToken, profile, done) => {
                 try {

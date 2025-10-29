@@ -1,3 +1,4 @@
+// frontend/src/api/searches.js
 import api from "./client";
 
 // Admin (requiere rol admin)

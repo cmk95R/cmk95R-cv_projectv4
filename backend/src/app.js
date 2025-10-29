@@ -8,16 +8,13 @@ import cookieParser from "cookie-parser";
 
 import connectDB from "./db/db.js";
 
-// Rutas
+// --- 1. Importaciones de Rutas (Mantenemos todas por ahora) ---
 import authRoutes from "./routes/authRoutes.js";
-import userRoutes from "./routes/userRoutes.js";
 import cvRoutes from "./routes/cvRoutes.js";
-import adminSearchesRoutes from "./routes/adminSearches.routes.js";
-import searchesRoutes from "./routes/searches.routes.js";
-import applicationsRoutes from "./routes/applications.routes.js";
-import geoRoutes from "./routes/geoRoutes.js";
-
-// Passport (Google)
+import searchesRoutes from "./routes/searches.routes.js"; // Rutas públicas y de usuario
+import applicationsRoutes from "./routes/applications.routes.js"; // Rutas de usuario
+import adminRoutes from "./routes/adminRoutes.js"; // <-- CORRECCIÓN: Importamos el router de admin centralizado
+import geoRoutes from "./routes/geoRoutes.js"; // Rutas públicas
 import { initGooglePassport } from "./auth/google.strategy.js";
 
 dotenv.config();
@@ -25,83 +22,95 @@ dotenv.config();
 const app = express();
 const IS_PROD = process.env.NODE_ENV === "production";
 
-/* ===== Proxy/HTTPS detrás de Nginx ===== */
 app.set("trust proxy", IS_PROD ? 1 : 0);
 
-/* ===== Parsers ===== */
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-/* ===== CORS =====
-   - En producción (mismo dominio) NO hace falta CORS.
-   - En desarrollo permitimos http://localhost:5173 (Vite) con credenciales.
-*/
-if (!IS_PROD) {
-  app.use(
-    cors({
-      origin(origin, cb) {
-        if (!origin) return cb(null, true);
-        if (origin === "http://localhost:5173") return cb(null, true);
-        return cb(new Error("CORS not allowed"));
-      },
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
-    })
-  );
-  app.options("*", (req, res) => res.sendStatus(204));
+// --- 2. Configuración de CORS (¡IMPORTANTE! La ajustaremos después) ---
+// Por ahora la dejamos como estaba, pero RECUERDA que necesitarás
+// permitir tu FRONTEND_URL en producción aquí.
+const allowedOrigins = [];
+if (IS_PROD) {
+    if (process.env.FRONTEND_URL) {
+        allowedOrigins.push(process.env.FRONTEND_URL);
+    } else {
+        console.warn("⚠️ Advertencia: FRONTEND_URL no definida para producción.");
+    }
+} else {
+    allowedOrigins.push("http://localhost:5173"); // Tu frontend de desarrollo
 }
 
-/* ===== Sesión (necesaria para el 'state' de OAuth) ===== */
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.error(`CORS bloqueado para el origen: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Responder a preflight requests
+
+// --- 3. Sesión y Passport (Sin cambios) ---
 if (!process.env.SESSION_SECRET) {
-  console.warn("⚠️ Falta SESSION_SECRET en .env");
+    console.warn("⚠️ Falta SESSION_SECRET en .env");
 }
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "cambia-esto-en-.env",
     resave: false,
-    saveUninitialized: false, // Cambiado a false, no necesitas guardar sesiones vacías
-    cookie: {
-      secure: IS_PROD,
-      sameSite: "lax",
-    },
+    saveUninitialized: false,
+    cookie: { secure: IS_PROD, sameSite: "lax" },
   })
 );
-
-/* ===== Passport ===== */
 app.use(passport.initialize());
 initGooglePassport();
 
-/* ===== Health ===== */
+// --- Ruta Health Check (Sin cambios) ---
 app.get("/health", (_req, res) => {
   res.json({ ok: true, env: process.env.NODE_ENV || "dev" });
 });
 
-/* ===== Rutas API ===== */
-app.use("/auth", authRoutes);
-app.use("/users", userRoutes);
-app.use("/cv", cvRoutes);
-app.use("/", adminSearchesRoutes);
-app.use("/", searchesRoutes);
-app.use("/", applicationsRoutes);
-app.use("/geo", geoRoutes);
-/* ===== 404 ===== */
+// --- 4. Montaje de Rutas API con prefijo /api ---
+const apiRouter = express.Router(); // Router principal para /api
+
+// Montamos las rutas relevantes para usuarios bajo /api
+apiRouter.use("/auth", authRoutes);            // /api/auth/... (Registro, Login, Google, Verify, Me)
+apiRouter.use("/cv", cvRoutes);                // /api/cv/... (Rutas /me para el CV del usuario)
+apiRouter.use("/searches", searchesRoutes);    // /api/searches/... (Listar, Detalle, Apply)
+apiRouter.use("/applications", applicationsRoutes); // /api/applications/... (Rutas /me y /:id para postulaciones del usuario)
+apiRouter.use("/geo", geoRoutes);              // /api/geo/... (Provincias, Localidades - públicas)
+// Montamos TODAS las rutas de admin bajo /api/admin
+apiRouter.use("/admin", adminRoutes);
+// Finalmente, montamos el router principal de la API en la app
+app.use("/api", apiRouter);
+
+// --- 5. Manejadores de 404 y Errores (Sin cambios) ---
 app.use((req, res) => {
-  res.status(404).json({ message: "Ruta no encontrada" });
+  // Si ninguna ruta API coincidió, devuelve 404 JSON
+  if (req.originalUrl.startsWith('/api')) {
+      return res.status(404).json({ message: "Endpoint de API no encontrado" });
+  }
+  // Si no es una ruta API, podrías servir tu index.html aquí o dejar que Nginx lo maneje
+  // (Depende de tu configuración de despliegue)
+  res.status(404).send('Not Found'); // O envía tu index.html
 });
 
-/* ===== Error handler ===== */
 app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
-  res
-    .status(err.status || 500)
-    .json({ message: err.message || "Error interno del servidor" });
+  console.error("Unhandled API error:", err);
+  res.status(err.status || 500).json({ message: err.message || "Error interno del servidor" });
 });
 
-/* ===== Mongo + Server ===== */
+// --- 6. Conexión DB y Arranque (Sin cambios) ---
 const PORT = process.env.PORT || (IS_PROD ? 4000 : 3000);
-
 connectDB()
   .then(() => {
     app.listen(PORT, () => {

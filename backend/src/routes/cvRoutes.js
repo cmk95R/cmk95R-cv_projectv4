@@ -1,32 +1,37 @@
-// src/routes/cvRoutes.js
-
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
-import { requireRole } from "../middleware/role.middleware.js";
-// 1. IMPORTA TU MIDDLEWARE DE MULTER
-import upload from "../middleware/upload.middleware.js"; 
+import upload from "../middleware/upload.middleware.js";
+// Importa solo los controladores necesarios para las rutas de usuario
 import {
-  upsertMyCV,
-  listAllCVs,
   getMyCV,
-  downloadCvByUserId,
+  upsertMyCV,
+  downloadMyCv
 } from "../controllers/cv.controller.js";
-import { downloadMyCv } from "../controllers/cv.controller.js";
-
 
 const router = Router();
 
-// 2. AÑADE EL MIDDLEWARE DE UPLOAD AQUÍ
-// El usuario carga/actualiza su propio CV. `upload.single("cvPdf")`
-// procesa el archivo del campo "cvPdf" antes de llegar al controlador.
-router.post("/me", requireAuth, upload.single("cvPdf"), upsertMyCV); // <-- ¡Aquí está la magia! 🚀
+// --- Rutas para el Usuario Logueado (montadas bajo /api/cv) ---
 
-// Estas rutas no cambian
+// GET /api/cv/me - Obtener el CV propio del usuario
 router.get("/me", requireAuth, getMyCV);
-router.get("/", requireAuth, requireRole("admin", "rrhh"), listAllCVs);
-// Ruta para que el usuario descargue su propio CV
+
+// POST /api/cv/me - Crear o actualizar el CV propio (maneja subida de archivo)
+router.post("/me", requireAuth, upload.single("cvPdf"), upsertMyCV);
+
+// GET /api/cv/me/download - Obtener la URL de descarga para el CV propio
 router.get("/me/download", requireAuth, downloadMyCv);
-// Ruta para que el admin descargue el CV de un usuario
-router.get("/admin/users/:userId/cv/download", requireAuth, requireRole("admin", "rrhh"), downloadCvByUserId);
+
+
+// --- Rutas de Admin (Se moverán a adminRoutes.js después) ---
+/*
+import { requireRole } from "../middleware/role.middleware.js";
+import { listAllCVs, downloadCvByUserId } from "../controllers/cv.controller.js";
+
+// GET /api/admin/cvs - Listar todos los CVs
+router.get("/", requireAuth, requireRole("admin"), listAllCVs);
+
+// GET /api/admin/users/:userId/cv/download - Descargar el CV de un usuario específico
+router.get("/admin/users/:userId/cv/download", requireAuth, requireRole("admin"), downloadCvByUserId);
+*/
 
 export default router;

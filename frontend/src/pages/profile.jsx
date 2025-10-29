@@ -23,7 +23,7 @@ import DireccionAR from "../components/DireccionAR";
 
 // Utils
 import { normalizeDireccion } from "../utils/normalize";
-import { mergeDireccion } from "../utils/merge";
+// import { mergeDireccion } from "../utils/merge";
 
 // Constantes
 const nivelesAcademicos = [
@@ -105,20 +105,8 @@ export default function ProfileWizard() {
     setIsSaving(true);
 
     try {
-      // --- CORRECCIÓN: Separamos la lógica de guardado ---
-
-      // 1. Preparamos el payload para actualizar el perfil del USUARIO
-      const userPayload = {
-        nombre: cvData.nombre,
-        apellido: cvData.apellido,
-        telefono: cvData.telefono,
-        nacimiento: cvData.nacimiento,
-        direccion: cvData.direccion, // Enviamos el objeto de dirección completo
-      };
-      // Llamamos a la API para actualizar el usuario
-      await editUserApi(userPayload);
-
-      // 2. Preparamos el payload para actualizar el CV
+      // --- CORRECCIÓN: Se consolida el guardado en una sola llamada a la API del CV ---
+      // El backend (upsertMyCV) ya se encarga de sincronizar los datos con el modelo User.
       const payload = {
         ...cvData,
       };
@@ -130,9 +118,6 @@ export default function ProfileWizard() {
 
         // Creamos una copia de payload para no modificar el estado
         const dataToSend = { ...payload };
-        // No enviar el objeto 'cvFile' ni 'direccion' al endpoint del CV
-        delete dataToSend.cvFile;
-        delete dataToSend.direccion;
 
         // Adjuntamos el resto de los campos al FormData
         for (const key in dataToSend) {
@@ -147,7 +132,6 @@ export default function ProfileWizard() {
         await upsertMyCv(formData);
       } else {
         // Si no hay archivo, enviamos solo los datos del CV como JSON
-        delete payload.direccion;
         await upsertMyCvJson(payload);
       }
 
@@ -157,7 +141,9 @@ export default function ProfileWizard() {
       setActiveStep(0);
     } catch (e) {
       console.error(e);
-      setSnack({ open: true, severity: "error", msg: "Error al guardar el perfil." });
+      // Mensaje de error más específico si es posible
+      const errorMsg = e.response?.data?.message || "Error al guardar el perfil.";
+      setSnack({ open: true, severity: "error", msg: errorMsg });
     } finally {
       setIsSaving(false);
     }
@@ -307,8 +293,8 @@ const CvFileDataReviewCard = ({ data, newFile }) => (
 
 const PersonalForm = ({ data, onChange, reviewData }) => (
   <Fade in={true}>
-    <Grid container spacing={4}>
-      <Grid item xs={12} md={7}>
+    <Grid container spacing={4} wrap="wrap">
+      <Grid xs={12} md={7}>
         <Stack spacing={3}>
           <Typography variant="h6" gutterBottom>Cuéntanos un poco sobre ti</Typography>
           <TextField label="Nombre *" value={data.nombre || ''} onChange={e => onChange('nombre', e.target.value)} fullWidth />
@@ -317,7 +303,7 @@ const PersonalForm = ({ data, onChange, reviewData }) => (
           <TextField label="Resumen Profesional" multiline rows={4} value={data.perfil || ''} onChange={e => onChange('perfil', e.target.value)} fullWidth />
         </Stack>
       </Grid>
-      <Grid item xs={12} md={5}>
+      <Grid xs={12} md={5}>
         <PersonalDataReviewCard data={reviewData} />
       </Grid>
     </Grid>
@@ -327,7 +313,7 @@ const PersonalForm = ({ data, onChange, reviewData }) => (
 const ContactLocationForm = ({ data, onFieldChange, onDireccionChange, reviewData }) => (
   <Fade in={true}>
     <Grid container spacing={4}>
-      <Grid item xs={12} md={7}>
+      <Grid xs={12} md={7}>
         <Stack spacing={3}>
           <Typography variant="h6" gutterBottom>Información de Contacto y Ubicación</Typography>
           <TextField label="Email *" value={data.email || ''} onChange={e => onFieldChange('email', e.target.value)} fullWidth />
@@ -336,7 +322,7 @@ const ContactLocationForm = ({ data, onFieldChange, onDireccionChange, reviewDat
           <DireccionAR value={data.direccion || null} onChange={onDireccionChange} required />
         </Stack>
       </Grid>
-      <Grid item xs={12} md={5}>
+      <Grid xs={12} md={5}>
         <ContactDataReviewCard data={reviewData} />
       </Grid>
     </Grid>
@@ -356,7 +342,7 @@ const EducationForm = ({ data, onChange, reviewData }) => {
   return (
     <Fade in={true}>
       <Grid container spacing={4}>
-        <Grid item xs={12} md={7}>
+        <Grid xs={12} md={7}>
           <Stack spacing={3}>
             <Typography variant="h6" gutterBottom>Tu Trayectoria Académica</Typography>
             {educations.map((edu, idx) => (
@@ -366,22 +352,22 @@ const EducationForm = ({ data, onChange, reviewData }) => {
                   <IconButton color="error" size="small" onClick={() => removeEducation(idx)}><DeleteIcon /></IconButton>
                 </Box>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} >
+                  <Grid xs={12} >
                     <TextField select fullWidth label="Nivel Académico" value={edu.nivelAcademico || ''} onChange={e => updateEducation(idx, 'nivelAcademico', e.target.value)} >
                       {nivelesAcademicos.map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
                     </TextField>
                   </Grid>
-                  <Grid item xs={12}><TextField label="Nombre de la carrera / Título Obtenido" value={edu.carrera || ''} onChange={e => updateEducation(idx, 'carrera', e.target.value)} fullWidth /></Grid>
-                  <Grid item xs={12}><TextField label="Institución Educativa" value={edu.institucion || ''} onChange={e => updateEducation(idx, 'institucion', e.target.value)} fullWidth /></Grid>
-                  <Grid item xs={12} sm={6}><TextField type="date" label="Desde" value={String(edu.desde || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateEducation(idx, 'desde', e.target.value)} fullWidth /></Grid>
-                  <Grid item xs={12} sm={6}><TextField type="date" label="Hasta" value={String(edu.hasta || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateEducation(idx, 'hasta', e.target.value)} fullWidth /></Grid>
+                  <Grid xs={12}><TextField label="Nombre de la carrera / Título Obtenido" value={edu.carrera || ''} onChange={e => updateEducation(idx, 'carrera', e.target.value)} fullWidth /></Grid>
+                  <Grid xs={12}><TextField label="Institución Educativa" value={edu.institucion || ''} onChange={e => updateEducation(idx, 'institucion', e.target.value)} fullWidth /></Grid>
+                  <Grid xs={12} sm={6}><TextField type="date" label="Desde" value={String(edu.desde || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateEducation(idx, 'desde', e.target.value)} fullWidth /></Grid>
+                  <Grid xs={12} sm={6}><TextField type="date" label="Hasta" value={String(edu.hasta || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateEducation(idx, 'hasta', e.target.value)} fullWidth /></Grid>
                 </Grid>
               </Card>
             ))}
             <Button startIcon={<AddIcon />} onClick={addEducation} variant="text" sx={{ alignSelf: 'flex-start' }}>Añadir Estudio</Button>
           </Stack>
         </Grid>
-        <Grid item xs={12} md={5}>
+        <Grid xs={12} md={5}>
           <EducationDataReviewCard data={reviewData} />
         </Grid>
       </Grid>
@@ -402,27 +388,27 @@ const ExperienceForm = ({ data, onChange, reviewData }) => {
   return (
     <Fade in={true}>
       <Grid container spacing={4}>
-        <Grid item xs={12} md={7}>
+        <Grid xs={12} md={7}>
           <Stack spacing={3}>
             <Typography variant="h6" gutterBottom>Tu Historial Laboral</Typography>
             {experiences.map((exp, idx) => (
-              <Card key={idx} variant="outlined" sx={{ p: 2 }}>
+              <Card key={exp._id || idx} variant="outlined" sx={{ p: 2 }}>
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                   <Typography variant="subtitle1" fontWeight="medium">Experiencia #{idx + 1}</Typography>
                   <IconButton color="error" size="small" onClick={() => removeExperience(idx)}><DeleteIcon /></IconButton>
                 </Box>
                 <Grid container spacing={2}>
-                  <Grid item xs={12}><TextField label="Puesto / Título" value={exp.puesto || ''} onChange={e => updateExperience(idx, 'puesto', e.target.value)} fullWidth /></Grid>
-                  <Grid item xs={12}><TextField label="Empresa" value={exp.empresa || ''} onChange={e => updateExperience(idx, 'empresa', e.target.value)} fullWidth /></Grid>
-                  <Grid item xs={6}><TextField type="date" label="Desde" value={String(exp.desde || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateExperience(idx, 'desde', e.target.value)} fullWidth /></Grid>
-                  <Grid item xs={6}><TextField type="date" label="Hasta" value={String(exp.hasta || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateExperience(idx, 'hasta', e.target.value)} fullWidth /></Grid>
+                  <Grid xs={12}><TextField label="Puesto / Título" value={exp.puesto || ''} onChange={e => updateExperience(idx, 'puesto', e.target.value)} fullWidth /></Grid>
+                  <Grid xs={12}><TextField label="Empresa" value={exp.empresa || ''} onChange={e => updateExperience(idx, 'empresa', e.target.value)} fullWidth /></Grid>
+                  <Grid xs={6}><TextField type="date" label="Desde" value={String(exp.desde || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateExperience(idx, 'desde', e.target.value)} fullWidth /></Grid>
+                  <Grid xs={6}><TextField type="date" label="Hasta" value={String(exp.hasta || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateExperience(idx, 'hasta', e.target.value)} fullWidth /></Grid>
                 </Grid>
               </Card>
             ))}
             <Button startIcon={<AddIcon />} onClick={addExperience} variant="text" sx={{ alignSelf: 'flex-start' }}>Añadir Experiencia</Button>
           </Stack>
         </Grid>
-        <Grid item xs={12} md={5}>
+        <Grid xs={12} md={5}>
           <ExperienceDataReviewCard data={reviewData} />
         </Grid>
       </Grid>
@@ -461,7 +447,7 @@ const UploadCV = ({ existingFile, lastUpdated, onFileSelect, reviewData, newFile
   return (
     <Fade in={true}>
       <Grid container spacing={4}>
-        <Grid item xs={12} md={7}>
+        <Grid xs={12} md={7}>
           <Stack spacing={3}>
             <Typography variant="h6" gutterBottom>Adjunta tu CV (Formato PDF)</Typography>
             <Typography variant="body2" color="text.secondary">
@@ -505,7 +491,7 @@ const UploadCV = ({ existingFile, lastUpdated, onFileSelect, reviewData, newFile
             )}
           </Stack>
         </Grid>
-        <Grid item xs={12} md={5}>
+        <Grid xs={12} md={5}>
           <CvFileDataReviewCard data={reviewData} newFile={newFile} />
         </Grid>
       </Grid>

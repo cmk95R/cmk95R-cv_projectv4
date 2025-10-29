@@ -1,3 +1,4 @@
+//frontend/src/api/apiGeo.js
 import api from "../api/client"; // Importamos nuestro cliente de API
 
 // --- Funciones de API locales ---

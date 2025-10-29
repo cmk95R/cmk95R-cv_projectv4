@@ -1,3 +1,5 @@
+// frontend/src/api/applications.js
+
 import api from "./client";
 
 export const applyToSearchApi = (id, payload) =>

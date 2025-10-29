@@ -1,7 +1,7 @@
 import Search, { AREAS, ESTADOS } from "../models/Search.js";
 
 // GET /admin/searches
-export const listSearches = async (req, res, next) => {
+export const listAdminSearches = async (req, res, next) => {
   try {
     const { q, area, estado } = req.query;
     const filter = {};
