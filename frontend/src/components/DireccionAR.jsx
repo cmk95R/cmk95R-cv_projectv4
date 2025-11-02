@@ -86,7 +86,7 @@ export default function DireccionAR({ value, onChange, required }) {
             <Grid item xs={12} sm={6}>
                 <TextField
                     width={150}
-                    label="Ingrese tu localidad"
+                    label="Ingresa tu localidad"
                     required={required}
                     value={
                         value?.localidad?.nombre ?? // Si es un objeto, usa su propiedad 'nombre'
