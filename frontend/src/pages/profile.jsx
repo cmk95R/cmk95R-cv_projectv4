@@ -90,7 +90,10 @@ export default function ProfileWizard() {
   };
 
   const handleDireccionChange = useCallback((dir) => {
-    setCvData(prev => ({ ...prev, direccion: normalizeDireccion(dir) }));
+    // El componente DireccionAR ya nos da el formato correcto:
+    // { provincia: object, localidad: string }.
+    // Simplemente lo asignamos directamente al estado.
+    setCvData(prev => ({ ...prev, direccion: dir }));
   }, []);
 
   const handleExperienceChange = (newExperiences) => {
@@ -240,7 +243,10 @@ const ContactDataReviewCard = ({ data }) => (
     <Typography>Teléfono: {data.telefono || '—'}</Typography>
     <Typography>
       Ubicación: {
-        [data.direccion?.localidad?.nombre, data.direccion?.provincia?.nombre].filter(Boolean).join(', ') || '—'
+        [
+          (data.direccion?.localidad?.nombre ?? data.direccion?.localidad), // <-- CORRECCIÓN AQUÍ
+          data.direccion?.provincia?.nombre
+        ].filter(Boolean).join(', ') || '—'
       }
     </Typography>
   </Card>
