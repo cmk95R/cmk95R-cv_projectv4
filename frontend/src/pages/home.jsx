@@ -31,6 +31,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import PublicSearchesCarousel from "../components/PublicSearchesCarousel";
+import Typewriter from "../components/Typewriter";
 import Footer from '../components/footer';
 import { AuthContext } from '../context/AuthContext';
 // ===== Variants =====
@@ -72,7 +73,7 @@ const cardVariants = {
 
 // ===== Datos =====
 const valores = [
-  { icon: LightbulbIcon, title: 'Innovación', text: 'Experimentamos y aprendemos rápido.' },
+  { icon: LightbulbIcon, title: 'Innovación', text: 'Mejoramos cada día con nuevas ideas y nuevas herramientas.' },
   { icon: SchoolIcon, title: 'Aprendizaje', text: 'Capacitación continua y mentorías internas.' },
 
   { icon: FavoriteIcon, title: 'Compromiso', text: 'Cercanía con las personas y foco en resultados.' },
@@ -105,7 +106,12 @@ const areas = [
   { title: 'Pasantias', tags: ['Aprendizaje', 'Crecimiento'], img: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=60', path: '/searches?area=Pasantia' },
   { title: 'Sistemas', tags: ['Software', 'Soporte Tecnico', 'DevOps'], img: 'https://images.pexels.com/photos/442150/pexels-photo-442150.jpeg', path: '/searches?area=Sistemas' }
 ];
-
+const heroTaglines = [
+  "Encuentra tu lugar en ASYTEC.",
+  "Crecé con nosotros.",
+  "Impulsando la transformación digital.",
+  "Oportunidades de aprendizaje y crecimiento."
+];
 const Home = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -164,8 +170,25 @@ const Home = () => {
             <Typography variant="h2" component="h1" gutterBottom>
               Bienvenido
             </Typography>
-            <Typography variant="h5">
-              Sumate a un equipo apasionado por la tecnología y la innovación.
+           <Typography
+              variant="h5"
+              component="div" // Importante: usar 'div' para que el span del Typewriter sea válido
+              sx={{
+                fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem' },
+                maxWidth: '700px',
+                margin: 'auto',
+                minHeight: '2.5em' // Da un espacio fijo para que no "salte"
+              }}
+            >
+              <Typewriter
+                text={heroTaglines}
+                loop={true}
+                speed={50}
+                deleteSpeed={30}
+                waitTime={2500}
+                // Hacemos que el cursor tenga el mismo estilo que el texto
+                cursorClassName="MuiTypography-h5" 
+              />
             </Typography>
             <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} style={{ marginTop: 24 }}>
               <Button variant="contained" color="primary" onClick={handleApplyClick} sx={{ px: 4, py: 1.5, fontWeight: 'bold' }}>

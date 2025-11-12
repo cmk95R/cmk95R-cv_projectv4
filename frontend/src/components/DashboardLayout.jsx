@@ -211,7 +211,9 @@ export default function DashboardLayout() {
                 sx={{
                   color: theme.palette.common.white,
                   '&:hover': {
-                    bgcolor: 'rgba(255,255,255,0.1)'
+                    color: theme.palette.primary.main,
+                    bgcolor: theme.palette.common.white,
+                    borderColor: theme.palette.grey[100],
                   }
                 }}
               >
@@ -221,11 +223,10 @@ export default function DashboardLayout() {
                 variant="outlined"
                 onClick={() => navigate("/register")}
                 sx={{
-                  bgcolor: theme.palette.common.white,
-                  color: theme.palette.primary.main,
-                  borderColor: theme.palette.common.white,
+                  color: theme.palette.common.white,
                   '&:hover': {
-                    bgcolor: theme.palette.grey[100],
+                    color: theme.palette.primary.main,
+                    bgcolor: theme.palette.common.white,
                     borderColor: theme.palette.grey[100],
                   }
                 }}
