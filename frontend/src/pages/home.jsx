@@ -134,7 +134,14 @@ const Home = () => {
   }, []);
 
   return (
-    <Box sx={{ backgroundColor: '#f4f6f8'}}>
+    <Box sx={{ 
+        backgroundColor: '#f4f6f8',
+        
+        // ESTAS 3 LÍNEAS SALVAN EL DISEÑO EN 900-1200px:
+        width: '100%',
+        maxWidth: '100vw',  // Asegura que NADA pase del ancho de ventana
+        overflowX: 'hidden' // Corta cualquier animación o grid rebelde
+    }}>
 
       {/* ===== HERO con animaciones ===== */}
       <Box
@@ -166,7 +173,7 @@ const Home = () => {
         />
         <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0, 0, 0, 0.5)', zIndex: 1 }} />
         <Container maxWidth="md" sx={{ zIndex: 2 }}>
-          <motion.div variants={heroContentVariants} initial="hidden" animate="visible">
+          <motion.div variants={heroContentVariants} initial="hidden" animate="visible" >
             <Typography variant="h2" component="h1" gutterBottom>
               Bienvenido
             </Typography>
@@ -205,7 +212,7 @@ const Home = () => {
           <Typography variant="h4" gutterBottom textAlign="center">Nuestros valores</Typography>
           <Grid container spacing={3} sx={{ display: { xs: "grid" , width: "max-content",justifyContent: "space-around" , lg : "flex" }}}>
             {valores.map((v, i) => (
-              <Grid item xs={12} sm={6} md={3} key={i}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
                 <motion.div variants={cardVariants} whileHover={{ y: -6 }}>
                   <Card sx={{ p: 3, textAlign: 'center', borderRadius: 3, boxShadow: 3,width: "360px" }} >
                     <v.icon sx={{ fontSize: 60, mb: 1, color: 'primary.main' }} />
@@ -221,13 +228,21 @@ const Home = () => {
 
       {/* ===== CARROUSEL DE PUBLICACIONES ===== */}
       
-      <Box sx={{ display: { xs: 'none', md: 'flex', justifyContent: 'center'} }}>
-        <motion.section variants={sectionVariants} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }}>
-          <Container maxWidth="lg" sx={{ mb: 2 }}>
-            <PublicSearchesCarousel />
-          </Container>
-        </motion.section>
-      </Box>
+      <Box sx={{ display: { md: 'block' }, width: '100%', overflow: 'hidden' }}>
+  
+  <motion.section 
+    variants={sectionVariants} 
+    initial="hidden" 
+    whileInView="visible" 
+    viewport={{ once: true, amount: 0.2 }}
+    style={{ width: '100%' }}
+  >
+    <Container maxWidth="lg" sx={{ mb: 2 }}>
+      <PublicSearchesCarousel />
+    </Container>
+  </motion.section>
+
+</Box>
       
 
 
@@ -239,12 +254,13 @@ const Home = () => {
         viewport={{ once: true, amount: 0.2 }}
       >
         <Container maxWidth="lg" sx={{ mb: 8 }}>
+          
           <Typography variant="h4" gutterBottom textAlign="center">
             Áreas de Oportunidad
           </Typography>
-          <Grid container spacing={3} sx={{ display: { xs: "grid" , lg: "flex"}, justifyContent: "center"}}>
+          <Grid container spacing={3} sx={{ justifyContent: " flex-end" }}>
             {areas.map((a, i) => (
-              <Grid item xs={12} sm={6} md={3} key={i}>
+              <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={i} style={{ display: "flex", justifyContent: "center" }}>
                 <motion.div variants={cardVariants} whileHover={{ y: -6, scale: 1.01 }}>
                   <Card
                     sx={{
