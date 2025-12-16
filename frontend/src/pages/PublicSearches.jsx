@@ -15,12 +15,19 @@ import {
   Snackbar,
   Alert,
   Grid,
+  Dialog,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import LinkedInIcon from "@mui/icons-material/LinkedIn";
+import InstagramIcon from "@mui/icons-material/Instagram";
+import FacebookIcon from "@mui/icons-material/Facebook";
 
 import { listPublicSearchesApi } from "../api/searches"; // <-- usa api/client.js por dentro
 import { applyToSearchApi } from "../api/applications"; // si aún no existe, créalo
@@ -45,6 +52,7 @@ export default function PublicSearches() {
   const [applyingId, setApplyingId] = useState(null);
   const [appliedIds, setAppliedIds] = useState(() => new Set());
   const [selectedSearch, setSelectedSearch] = useState(null); // 2. Estado para el modal
+  const [socialModalOpen, setSocialModalOpen] = useState(false);
   
   const [selectedArea, setSelectedArea] = useState("Todas");
 
@@ -253,7 +261,7 @@ export default function PublicSearches() {
                                     next.add(item.id);
                                     return next;
                                   });
-                                  setSnack({ open: true, severity: "success", msg: "Postulación enviada ✅" });
+                                  setSocialModalOpen(true);
                                 } catch (e) {
                                   const msg = e?.response?.data?.message || "No se pudo postular";
                                   setSnack({ open: true, severity: "error", msg });
@@ -291,6 +299,55 @@ export default function PublicSearches() {
         onClose={() => setSelectedSearch(null)}
         application={{ search: selectedSearch }}
       />
+
+      {/* Modal Social Media */}
+      <Dialog open={socialModalOpen} onClose={() => setSocialModalOpen(false)} maxWidth="xs" fullWidth>
+        <DialogContent sx={{ textAlign: "center", py: 4 }}>
+          <motion.div
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          >
+            <CheckCircleOutlineIcon color="success" sx={{ fontSize: 60, mb: 2 }} />
+          </motion.div>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            ¡Postulación enviada!
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3, fontWeight: 500 }}>
+            Seguinos en nuestras redes para enterarte de nuestras novedades. 
+          </Typography>
+          <Stack direction="row" spacing={3} justifyContent="center">
+            <motion.div whileHover={{ scale: 1.2, rotate: 10 }} whileTap={{ scale: 0.9 }}>
+              <IconButton
+                component="a"
+                href="https://www.linkedin.com/company/asytec/"
+                target="_blank"
+                rel="noopener noreferrer"
+                color="primary"
+              >
+                <LinkedInIcon fontSize="large" />
+              </IconButton>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.2, rotate: -10 }} whileTap={{ scale: 0.9 }}>
+              <IconButton
+                component="a"
+                href="https://www.instagram.com/asytecsistemas/"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ color: "#E1306C" }}
+              >
+                <InstagramIcon fontSize="large" />
+              </IconButton>
+            </motion.div>
+            
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
+          <Button onClick={() => setSocialModalOpen(false)} variant="contained">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snack.open}
