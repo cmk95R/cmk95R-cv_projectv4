@@ -16,7 +16,7 @@ import searchesRoutes from "./routes/searches.routes.js"; // Rutas públicas y d
 import applicationsRoutes from "./routes/applications.routes.js"; // Rutas de usuario
 import adminRoutes from "./routes/adminRoutes.js"; // <-- CORRECCIÓN: Importamos el router de admin centralizado
 import geoRoutes from "./routes/geoRoutes.js"; // Rutas públicas
-import areasRoutes from "./routes/areas.Routes.js"; // Rutas públicas
+import areasRoutes from "./routes/areas.routes.js"; // Rutas públicas
 import { initGooglePassport } from "./auth/google.strategy.js";
 
 dotenv.config();
