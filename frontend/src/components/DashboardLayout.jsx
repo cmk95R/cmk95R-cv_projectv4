@@ -175,13 +175,12 @@ export default function DashboardLayout() {
   ];
 
   const rrhhMenu = [
-    { text: "Inicio", icon: <HomeIcon />, path: "/" },
+    { text: " Inicio", icon: <HomeIcon />, path: "/" },
+    { text: " Gestion de Áreas", icon: <AssignmentIcon />, path: "/admin/areas"  },
     { text: " Gestión de Busquedas", icon: <WorkIcon />, path: "/admin/searches" },
-    { text: " Gestión de Postulaciones", icon: <AssignmentIndIcon />, path: "/admin/applications" },
     { text: " Gestión de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates"},
-    { text: "Gestion de Áreas", icon: <AssignmentIcon />, path: "/admin/areas"  },
-
-    { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
+    { text: " Gestión de Postulaciones", icon: <AssignmentIndIcon />, path: "/admin/applications" },
+    { text: " Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ]  
 
   const getMenuItems = () => {

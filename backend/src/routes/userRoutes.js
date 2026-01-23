@@ -13,10 +13,10 @@ const router = Router();
 router.patch("/me", requireAuth, editUser);
 
 // PUT /api/users/:id - Admin actualiza datos de usuario
-router.put("/:id", requireAuth, requireRole("admin"), adminUpdateUser);
+router.put("/:id", requireAuth, requireRole("admin", "rrhh"), adminUpdateUser);
 
 // DELETE /api/users/:id - Admin elimina usuario
-router.delete("/:id", requireAuth, requireRole("admin"), deleteUser);
+router.delete("/:id", requireAuth, requireRole("admin", "rrhh"), deleteUser);
 
 // NOTA: La ruta GET /api/auth/me (para obtener los datos) ya está en authRoutes.js
 

@@ -29,9 +29,9 @@ router.get("/me/download", requireAuth, downloadMyCv);
 // --- Rutas de Admin (Se moverán a adminRoutes.js después) ---
 
 // GET /api/admin/cvs - Listar todos los CVs
-router.get("/", requireAuth, requireRole("admin"), listAllCVs);
+router.get("/", requireAuth, requireRole("admin", "rrhh"), listAllCVs);
 
 // GET /api/admin/users/:userId/cv/download - Descargar el CV de un usuario específico
-router.get("/admin/users/:userId/cv/download", requireAuth, requireRole("admin"), downloadCvByUserId);
+router.get("/admin/users/:userId/cv/download", requireAuth, requireRole("admin", "rrhh"), downloadCvByUserId);
 
 export default router;
