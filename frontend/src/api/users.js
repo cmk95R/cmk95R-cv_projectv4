@@ -58,3 +58,21 @@ export const adminSetUserRoleApi = (userId, rol) => api.patch(`/admin/users/${us
  * @param {string} userId - El ID del usuario.
  */
 export const getUserCvDownloadUrlApi = (userId) => api.get(`/admin/users/${userId}/cv/download`);
+
+/**
+ * 🔑 ADMIN: Reset de password a usuario 
+ * Calls POST /admin/users/:id/reset-password
+ */
+export const resetUserPasswordApi = (userId, newPassword) => api.post(`/admin/users/${userId}/reset-password`, { newPassword });
+
+/**
+ * 🔑 ADMIN: Actualiza datos de un usuario (nombre, apellido, email, telefono).
+ * Calls PUT /api/users/:id
+ */
+export const adminUpdateUserApi = (userId, data) => api.put(`/users/${userId}`, data);
+
+/**
+ * 🔑 ADMIN: Elimina un usuario y todos sus datos asociados.
+ * Calls DELETE /api/users/:id
+ */
+export const deleteUserApi = (id) => api.delete(`/users/${id}`);

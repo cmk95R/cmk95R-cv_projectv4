@@ -3,12 +3,16 @@ import * as React from "react";
 import {
   Container, Paper, Stack, Typography, Button, TextField, MenuItem,
   Snackbar, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
-  Divider, FormControl, InputLabel, Select, Chip
+  Divider, FormControl, InputLabel, Select, Chip, IconButton, Tooltip
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import { useNavigate } from "react-router-dom";
 import { listSearchesApi, createSearchApi, updateSearchApi, deleteSearchApi } from "../api/searches";
+import { listAreasApi } from "../api/areas";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import Swal from 'sweetalert2';
 
-const AREAS = ["Administracion", "Recursos Humanos", "Sistemas", "Pasantia"];
 const ESTADOS = ["Activa", "Pausada", "Cerrada"];
 
 const STATUS_COLORS = { Activa: "success", Pausada: "warning", Cerrada: "default" };
@@ -18,7 +22,9 @@ const CHIP_H = 28;
 const emptyForm = { titulo: "", area: "", estado: "Activa", ubicacion: "", descripcion: "" };
 
 export default function AdminSearches() {
+  const navigate = useNavigate();
   const [rows, setRows] = React.useState([]);
+  const [areas, setAreas] = React.useState([]); // Estado para áreas dinámicas
   const [loading, setLoading] = React.useState(true);
   const [snack, setSnack] = React.useState({ open: false, severity: "success", msg: "" });
 
@@ -33,6 +39,16 @@ export default function AdminSearches() {
   const [form, setForm] = React.useState(emptyForm);
   const [editingId, setEditingId] = React.useState(null);
 
+  // Cargar áreas
+  const fetchAreas = React.useCallback(async () => {
+    try {
+      const { data } = await listAreasApi();
+      setAreas(data.areas || []);
+    } catch (e) {
+      console.error("Error cargando áreas", e);
+    }
+  }, []);
+
   const fetchData = React.useCallback(async () => {
     setLoading(true);
     try {
@@ -45,6 +61,7 @@ export default function AdminSearches() {
         estado: s.estado,
         ubicacion: s.ubicacion,
         descripcion: s.descripcion,
+        created: s.createdAt,
         updatedAt: s.updatedAt,
       })));
     } catch (e) {
@@ -55,7 +72,10 @@ export default function AdminSearches() {
     }
   }, []);
 
-  React.useEffect(() => { fetchData(); }, [fetchData]);
+  React.useEffect(() => { 
+    fetchData(); 
+    fetchAreas(); 
+  }, [fetchData, fetchAreas]);
 
   const filtered = rows.filter((r) => {
     if (estadoTab !== "Todas" && r.estado !== estadoTab) return false;
@@ -107,15 +127,42 @@ export default function AdminSearches() {
     } finally { setSaving(false); }
   };
 
+  const handleEditClick = async (row) => {
+    const result = await Swal.fire({
+      title: '¿Editar búsqueda?',
+      text: `Vas a editar los datos de "${row.titulo}".`,
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, editar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      openEdit(row);
+    }
+  };
+
   const handleDelete = async (row) => {
-    if (!window.confirm(`¿Eliminar la búsqueda "${row.titulo}"?`)) return;
-    try {
-      await deleteSearchApi(row.id);
-      setSnack({ open: true, severity: "success", msg: "Búsqueda eliminada" });
-      fetchData();
-    } catch (e) {
-      console.error(e);
-      setSnack({ open: true, severity: "error", msg: e?.response?.data?.message || "No se pudo eliminar" });
+    const result = await Swal.fire({
+      title: '¿Eliminar búsqueda?',
+      text: `Vas a eliminar "${row.titulo}". Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await deleteSearchApi(row.id);
+        Swal.fire('¡Eliminado!', 'La búsqueda ha sido eliminada.', 'success');
+        fetchData();
+      } catch (e) {
+        console.error(e);
+        Swal.fire('Error', e?.response?.data?.message || "No se pudo eliminar", 'error');
+      }
     }
   };
 
@@ -201,25 +248,47 @@ export default function AdminSearches() {
       sortable: false,
     },
     {
-      field: "updatedAt",
-      headerName: "Última actualización",
-      width: 190,
+      field: "created",
+      headerName: "Creado",
+      width: 160,
       align: "center",
       headerAlign: "center",
-      valueGetter: (p) => (p.value ? new Date(p.value).toLocaleString() : ""),
+      type: "dateTime",
+      valueGetter: (value) => (value ? new Date(value) : null),
+      valueFormatter: (value) => (value ? value.toLocaleString() : ""),
+      sortable: true
+    },
+    {
+      field: "updatedAt",
+      headerName: "Última actualización",
+      width: 160,
+      align: "center",
+      headerAlign: "center",
+      type: "dateTime",
+      valueGetter: (value) => (value ? new Date(value) : null),
+      valueFormatter: (value) => (value ? value.toLocaleString() : ""),
       sortable: true,
     },
+    
     {
       field: "acciones",
       headerName: "Acciones",
-      width: 200,
+      width: 120,
       align: "center",
       headerAlign: "center",
       sortable: false,
       renderCell: (params) => (
         <Stack direction="row" spacing={1} justifyContent="center" sx={{ width: "100%" }}>
-          <Button size="small" variant="outlined" onClick={() => openEdit(params.row)}>Editar</Button>
-          <Button size="small" color="error" variant="outlined" onClick={() => handleDelete(params.row)}>Borrar</Button>
+          <Tooltip title="Editar">
+            <IconButton size="small" color="primary" onClick={() => handleEditClick(params.row)}>
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Eliminar">
+            <IconButton size="small" color="error" onClick={() => handleDelete(params.row)}>
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
         </Stack>
       ),
     },
@@ -247,8 +316,8 @@ export default function AdminSearches() {
             onChange={(e) => setAreaFilter(e.target.value)}
           >
             <MenuItem value="Todas">Todas las áreas</MenuItem>
-            {AREAS.map((area) => (
-              <MenuItem key={area} value={area}>{area}</MenuItem>
+            {areas.map((a) => (
+              <MenuItem key={a._id} value={a.nombre}>{a.nombre}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -267,6 +336,7 @@ export default function AdminSearches() {
           ))}
         </Stack>
 
+        
         <Button variant="contained" onClick={openCreate} sx={{ lineHeight: 'normal' }} fontsize="small">Agregar búsqueda</Button>
       </Stack>
 
@@ -334,7 +404,9 @@ export default function AdminSearches() {
               onChange={(e) => setForm({ ...form, area: e.target.value })}
               fullWidth
             >
-              {AREAS.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+              {areas.map((a) => (
+                <MenuItem key={a._id} value={a.nombre}>{a.nombre}</MenuItem>
+              ))}
             </TextField>
             <TextField
               select

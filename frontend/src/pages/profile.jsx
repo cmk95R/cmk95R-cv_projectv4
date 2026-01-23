@@ -1,17 +1,29 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Box, Container, Grid, Typography, Card,
   Button, TextField, MenuItem, Stack, Snackbar, Alert, Skeleton,
-  Stepper, Step, StepLabel, CircularProgress, Fade, IconButton
+  Stepper, Step, StepLabel, CircularProgress, Fade,Divider, IconButton, Link,
+  Dialog, DialogContent, DialogActions, InputAdornment, useTheme
 } from "@mui/material";
 import { styled } from '@mui/material/styles';
 import {
   ArrowBack as ArrowBackIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
-  CloudUpload as CloudUploadIcon
+  CloudUpload as CloudUploadIcon,
+  Visibility as VisibilityIcon,
+  CheckCircle as CheckCircleIcon,
+  School as SchoolIcon,
+  Business as BusinessIcon,
+  CalendarToday as CalendarIcon,
+  WorkspacePremium as CertificateIcon,
+  Work as WorkIcon
 } from "@mui/icons-material";
 import DownloadIcon from "@mui/icons-material/Download";
+import { Document, Page, pdfjs } from 'react-pdf';
+
+// Configuración del worker de PDF.js (necesario para que react-pdf funcione)
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 // APIs
 import { profileApi } from "../api/auth";
@@ -32,6 +44,22 @@ const nivelesAcademicos = [
   "Posgrado en curso", "Posgrado completo", "Curso/Bootcamp"
 ];
 const steps = ['Datos Personales', 'Contacto', 'Educación', 'Experiencia', 'Adjuntar CV', 'Revisar y Guardar'];
+
+const currentYear = new Date().getFullYear();
+const yearsList = Array.from({ length: 50 }, (_, i) => currentYear - i);
+
+// Helper para calcular edad
+const calculateAge = (dateString) => {
+  if (!dateString) return 0;
+  const today = new Date();
+  const birthDate = new Date(dateString);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
 
 // Componente para ocultar el input de archivo
 const VisuallyHiddenInput = styled('input')({
@@ -155,6 +183,39 @@ export default function ProfileWizard() {
   const handleNext = () => setActiveStep(p => p + 1);
   const handleBack = () => setActiveStep(p => p - 1);
 
+  const getStepStatus = (index) => {
+    if (loading || !cvData) return { completed: false, error: false };
+    
+    switch (index) {
+      case 0: { // Datos Personales
+        const age = calculateAge(cvData.nacimiento);
+        const isAgeValid = cvData.nacimiento ? (age >= 18 && age <= 99) : false;
+        const hasPersonal = !!(cvData.nombre && cvData.apellido && isAgeValid);
+        return { completed: hasPersonal, error: !hasPersonal };
+      }
+      case 1: { // Contacto
+        const hasDir = cvData.direccion && cvData.direccion.provincia && cvData.direccion.localidad;
+        const hasContact = !!(cvData.email && cvData.telefono && hasDir);
+        return { completed: hasContact, error: !hasContact };
+      }
+      case 2: { // Educación
+        const hasEdu = cvData.educacion && cvData.educacion.length > 0;
+        return { completed: hasEdu, error: !hasEdu };
+      }
+      case 3: { // Experiencia
+        // Corregido: Solo marcar completado si hay al menos una experiencia con datos reales
+        const hasExp = cvData.experiencia && cvData.experiencia.some(e => (e.puesto && e.puesto.trim()) || (e.empresa && e.empresa.trim()));
+        return { completed: hasExp, error: false };
+      }
+      case 4: { // Adjuntar CV
+        const hasFile = !!(cvData.cvFile || selectedFile);
+        return { completed: hasFile, error: !hasFile };
+      }
+      default:
+        return { completed: false, error: false };
+    }
+  };
+
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -172,7 +233,7 @@ export default function ProfileWizard() {
       case 3: return <ExperienceForm data={cvData.experiencia || []} onChange={handleExperienceChange} reviewData={cvData} />;
       case 4: return (
         <UploadCV
-          key={cvData.updatedAt || (cvData.cvFile?.filename || 'no-file')}
+          key={cvData.updatedAt || (cvData.cvFile?.fileName || cvData.cvFile?.filename || 'no-file')}
           existingFile={cvData.cvFile}
           lastUpdated={cvData.updatedAt}
           onFileSelect={setSelectedFile}
@@ -193,9 +254,27 @@ export default function ProfileWizard() {
           Configurar Perfil Profesional
         </Typography>
         <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}><StepLabel>{label}</StepLabel></Step>
-          ))}
+          {steps.map((label, index) => {
+            const { completed, error } = getStepStatus(index);
+            const isActive = activeStep === index;
+            return (
+              <Step key={label} completed={completed}>
+                <StepLabel 
+                  error={error}
+                  sx={{
+                    '& .MuiStepLabel-label': {
+                      fontWeight: isActive ? 'bold' : 'normal',
+                      color: isActive ? 'primary.main' : 'inherit',
+                      transform: isActive ? 'scale(1.15)' : 'none',
+                      transition: 'all 0.2s ease-in-out'
+                    }
+                  }}
+                >
+                  {label}
+                </StepLabel>
+              </Step>
+            );
+          })}
         </Stepper>
         <Box sx={{ minHeight: 400, p: 2 }}>
           {getStepContent(activeStep)}
@@ -286,40 +365,64 @@ const ExperienceDataReviewCard = ({ data }) => (
   </Card>
 );
 
-const CvFileDataReviewCard = ({ data, newFile }) => (
-  <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
-    <Typography variant="subtitle1" fontWeight="bold">CV Adjunto:</Typography>
-    <Typography>
-      {newFile ? `Nuevo: ${newFile.name}` : (data.cvFile?.filename || 'No hay un CV cargado.')}
-    </Typography>
-  </Card>
-);
+const CvFileDataReviewCard = ({ data, newFile }) => {
+  const fallbackName = data?.nombre ? `CV_${data.nombre.replace(/\s+/g, '_')}_${(data.apellido || '').replace(/\s+/g, '_')}.pdf` : "CV_Actual.pdf";
+  
+  return (
+    <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
+      <Typography variant="subtitle1" fontWeight="bold">CV Adjunto:</Typography>
+      <Stack direction="row" alignItems="center" spacing={1}>
+        <Typography>
+          {newFile ? `Nuevo: ${newFile.name}` : (data.cvFile?.fileName || data.cvFile?.filename || (data.cvFile?.providerId ? fallbackName : 'No hay un CV cargado.'))}
+        </Typography>
+        {(newFile || data.cvFile?.providerId) && <CheckCircleIcon color="success" fontSize="small" />}
+      </Stack>
+    </Card>
+  );
+};
 
 // --- Componentes de Formulario por Paso (Modificados) ---
 
-const PersonalForm = ({ data, onChange, reviewData }) => (
-  <Fade in={true}>
-    <Grid container spacing={4} wrap="wrap">
-      <Grid xs={12} md={7}>
-        <Stack spacing={3}>
-          <Typography variant="h6" gutterBottom>Cuéntanos un poco sobre ti</Typography>
-          <TextField label="Nombre *" value={data.nombre || ''} onChange={e => onChange('nombre', e.target.value)} fullWidth />
-          <TextField label="Apellido" value={data.apellido || ''} onChange={e => onChange('apellido', e.target.value)} fullWidth />
-          <TextField type="date" label="Fecha de nacimiento" value={String(data.nacimiento || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => onChange('nacimiento', e.target.value)} fullWidth />
-          <TextField label="Resumen Profesional" multiline rows={4} value={data.perfil || ''} onChange={e => onChange('perfil', e.target.value)} fullWidth />
-        </Stack>
+const PersonalForm = ({ data, onChange, reviewData }) => {
+  const age = calculateAge(data.nacimiento);
+  const isDateInvalid = data.nacimiento && (age < 18 || age > 99);
+  const dateErrorText = isDateInvalid 
+    ? (age < 18 ? "Debes ser mayor de 18 años." : "La edad no puede superar los 99 años.") 
+    : "";
+
+  return (
+    <Fade in={true}>
+      <Grid container spacing={4} wrap="wrap">
+        <Grid size={{ xs: 12, md: 7 }}>
+          <Stack spacing={3}>
+            <Typography variant="h6" gutterBottom>Cuéntanos un poco sobre ti</Typography>
+            <TextField label="Nombre *" value={data.nombre || ''} onChange={e => onChange('nombre', e.target.value)} fullWidth />
+            <TextField label="Apellido" value={data.apellido || ''} onChange={e => onChange('apellido', e.target.value)} fullWidth />
+            <TextField 
+              type="date" 
+              label="Fecha de nacimiento" 
+              value={String(data.nacimiento || '').slice(0, 10)} 
+              InputLabelProps={{ shrink: true }} 
+              onChange={e => onChange('nacimiento', e.target.value)} 
+              fullWidth 
+              error={!!isDateInvalid}
+              helperText={dateErrorText}
+            />
+            <TextField label="Resumen Profesional" multiline rows={4} value={data.perfil || ''} onChange={e => onChange('perfil', e.target.value)} fullWidth />
+          </Stack>
+        </Grid>
+        <Grid size={{ xs: 12, md: 5 }}>
+          <PersonalDataReviewCard data={reviewData} />
+        </Grid>
       </Grid>
-      <Grid xs={12} md={5}>
-        <PersonalDataReviewCard data={reviewData} />
-      </Grid>
-    </Grid>
-  </Fade>
-);
+    </Fade>
+  );
+};
 
 const ContactLocationForm = ({ data, onFieldChange, onDireccionChange, reviewData }) => (
   <Fade in={true}>
     <Grid container spacing={4}>
-      <Grid xs={12} md={7}>
+      <Grid size={{ xs: 12, md: 7 }}>
         <Stack spacing={3}>
           <Typography variant="h6" gutterBottom>Información de Contacto y Ubicación</Typography>
           <TextField label="Email *" value={data.email || ''} onChange={e => onFieldChange('email', e.target.value)} fullWidth />
@@ -328,7 +431,7 @@ const ContactLocationForm = ({ data, onFieldChange, onDireccionChange, reviewDat
           <DireccionAR value={data.direccion || null} onChange={onDireccionChange} required />
         </Stack>
       </Grid>
-      <Grid xs={12} md={5}>
+      <Grid size={{ xs: 12, md: 5 }}>
         <ContactDataReviewCard data={reviewData} />
       </Grid>
     </Grid>
@@ -337,6 +440,7 @@ const ContactLocationForm = ({ data, onFieldChange, onDireccionChange, reviewDat
 
 const EducationForm = ({ data, onChange, reviewData }) => {
   const educations = data || [];
+  const theme = useTheme();
 
   const addEducation = () => onChange([...educations, { nivelAcademico: '', carrera: '', institucion: '', desde: '', hasta: '' }]);
   const removeEducation = (idx) => onChange(educations.filter((_, i) => i !== idx));
@@ -345,44 +449,201 @@ const EducationForm = ({ data, onChange, reviewData }) => {
     onChange(newEducations);
   };
 
+  const getYearVal = (val) => {
+    if (!val) return '';
+    const d = new Date(val);
+    return isNaN(d.getFullYear()) ? '' : d.getFullYear();
+  };
+
   return (
     <Fade in={true}>
       <Grid container spacing={4}>
-        <Grid xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <Stack spacing={3}>
-            <Typography variant="h6" gutterBottom>Tu Trayectoria Académica</Typography>
+            <Box>
+              <Typography variant="h6" gutterBottom>Tu Trayectoria Académica</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Agrega tus estudios formales, cursos o certificaciones relevantes.
+              </Typography>
+            </Box>
+
             {educations.map((edu, idx) => (
-              <Card key={idx} variant="outlined" sx={{ p: 2 }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                  <Typography variant="subtitle1" fontWeight="medium">Estudio #{idx + 1}</Typography>
-                  <IconButton color="error" size="small" onClick={() => removeEducation(idx)}><DeleteIcon /></IconButton>
+              <Card 
+                key={idx} 
+                variant="outlined" 
+                sx={{ 
+                  p: 3, 
+                  position: 'relative',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: theme.shadows[2],
+                    borderColor: 'primary.main'
+                  }
+                }}
+              >
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Box sx={{ 
+                      width: 28, height: 28, borderRadius: '50%', 
+                      bgcolor: 'primary.main', color: 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.85rem', fontWeight: 'bold'
+                    }}>
+                      {idx + 1}
+                    </Box>
+                    <Typography variant="subtitle2" fontWeight="bold" color="text.primary">
+                      Detalle del Estudio
+                    </Typography>
+                  </Stack>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => removeEducation(idx)} 
+                    color="error"
+                    sx={{ bgcolor: 'error.50', '&:hover': { bgcolor: 'error.100' } }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                 </Box>
+                
+                <Divider sx={{ mb: 3 }} />
+
                 <Grid container spacing={2}>
-                  <Grid xs={12} >
-                    <TextField select fullWidth label="Nivel Académico" value={edu.nivelAcademico || ''} onChange={e => updateEducation(idx, 'nivelAcademico', e.target.value)} >
-                      {nivelesAcademicos.map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      select
+                      label="Nivel Académico"
+                      value={edu.nivelAcademico || ''}
+                      onChange={e => updateEducation(idx, 'nivelAcademico', e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <CertificateIcon fontSize="small" color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    >
+                      {nivelesAcademicos.map(n => (
+                        <MenuItem key={n} value={n}>{n}</MenuItem>
+                      ))}
                     </TextField>
                   </Grid>
-                  <Grid xs={12}><TextField label="Nombre de la carrera / Título Obtenido" value={edu.carrera || ''} onChange={e => updateEducation(idx, 'carrera', e.target.value)} fullWidth /></Grid>
-                  <Grid xs={12}><TextField label="Institución Educativa" value={edu.institucion || ''} onChange={e => updateEducation(idx, 'institucion', e.target.value)} fullWidth /></Grid>
-                  <Grid xs={12} sm={6}><TextField type="date" label="Desde" value={String(edu.desde || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateEducation(idx, 'desde', e.target.value)} fullWidth /></Grid>
-                  <Grid xs={12} sm={6}><TextField type="date" label="Hasta" value={String(edu.hasta || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateEducation(idx, 'hasta', e.target.value)} fullWidth /></Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      label="Título / Carrera"
+                      placeholder="Ej. Licenciatura en Sistemas"
+                      value={edu.carrera || ''}
+                      onChange={e => updateEducation(idx, 'carrera', e.target.value)}
+                      fullWidth
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SchoolIcon fontSize="small" color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+
+                  <Grid size={{ xs: 12 }}>
+                    <TextField
+                      label="Institución Educativa"
+                      placeholder="Ej. Universidad de Buenos Aires"
+                      value={edu.institucion || ''}
+                      onChange={e => updateEducation(idx, 'institucion', e.target.value)}
+                      fullWidth
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <BusinessIcon fontSize="small" color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      select
+                      label="Desde (Año)"
+                      value={getYearVal(edu.desde)}
+                      onChange={e => updateEducation(idx, 'desde', `${e.target.value}-01-01`)}
+                      fullWidth
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <CalendarIcon fontSize="small" color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    >
+                      {yearsList.map(y => (
+                        <MenuItem key={y} value={y}>{y}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      select
+                      label="Hasta (Año)"
+                      value={getYearVal(edu.hasta)}
+                      onChange={e => updateEducation(idx, 'hasta', `${e.target.value}-01-01`)}
+                      fullWidth
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <CalendarIcon fontSize="small" color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    >
+                      {yearsList.map(y => (
+                        <MenuItem key={y} value={y}>{y}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
                 </Grid>
               </Card>
             ))}
-            <Button startIcon={<AddIcon />} onClick={addEducation} variant="text" sx={{ alignSelf: 'flex-start' }}>Añadir Estudio</Button>
+
+            <Button 
+              startIcon={<AddIcon />} 
+              onClick={addEducation} 
+              fullWidth
+              variant="outlined" 
+              sx={{ 
+                borderStyle: 'dashed', 
+                borderWidth: '2px',
+                color: 'text.secondary',
+                justifyContent: 'center',
+                py: 1.5,
+                '&:hover': {
+                  borderWidth: '2px',
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  bgcolor: 'action.hover'
+                }
+              }}
+            >
+              Añadir otro estudio
+            </Button>
           </Stack>
         </Grid>
-        <Grid xs={12} md={5}>
-          <EducationDataReviewCard data={reviewData} />
+
+        <Grid size={{ xs: 12, md: 5 }}>
+          <Box sx={{ position: { md: 'sticky' }, top: 20 }}>
+            <EducationDataReviewCard data={reviewData} />
+          </Box>
         </Grid>
       </Grid>
     </Fade>
   );
 };
-
 const ExperienceForm = ({ data, onChange, reviewData }) => {
   const experiences = data || [];
+  const theme = useTheme();
 
   const addExperience = () => onChange([...experiences, { puesto: '', empresa: '', desde: '', hasta: '' }]);
   const removeExperience = (idx) => onChange(experiences.filter((_, i) => i !== idx));
@@ -394,27 +655,146 @@ const ExperienceForm = ({ data, onChange, reviewData }) => {
   return (
     <Fade in={true}>
       <Grid container spacing={4}>
-        <Grid xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <Stack spacing={3}>
-            <Typography variant="h6" gutterBottom>Tu Historial Laboral</Typography>
+            <Box>
+              <Typography variant="h6" gutterBottom>Tu Historial Laboral</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Agrega tus experiencias laborales previas relevantes.
+              </Typography>
+            </Box>
             {experiences.map((exp, idx) => (
-              <Card key={exp._id || idx} variant="outlined" sx={{ p: 2 }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                  <Typography variant="subtitle1" fontWeight="medium">Experiencia #{idx + 1}</Typography>
-                  <IconButton color="error" size="small" onClick={() => removeExperience(idx)}><DeleteIcon /></IconButton>
+              <Card 
+                key={exp._id || idx} 
+                variant="outlined" 
+                sx={{ 
+                  p: 3, 
+                  position: 'relative',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    boxShadow: theme.shadows[2],
+                    borderColor: 'primary.main'
+                  }
+                }}
+              >
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Box sx={{ 
+                      width: 28, height: 28, borderRadius: '50%', 
+                      bgcolor: 'primary.main', color: 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.85rem', fontWeight: 'bold'
+                    }}>
+                      {idx + 1}
+                    </Box>
+                    <Typography variant="subtitle2" fontWeight="bold" color="text.primary">
+                      Experiencia Laboral
+                    </Typography>
+                  </Stack>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => removeExperience(idx)} 
+                    color="error"
+                    sx={{ bgcolor: 'error.50', '&:hover': { bgcolor: 'error.100' } }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                 </Box>
+                
+                <Divider sx={{ mb: 3 }} />
+
                 <Grid container spacing={2}>
-                  <Grid xs={12}><TextField label="Puesto / Título" value={exp.puesto || ''} onChange={e => updateExperience(idx, 'puesto', e.target.value)} fullWidth /></Grid>
-                  <Grid xs={12}><TextField label="Empresa" value={exp.empresa || ''} onChange={e => updateExperience(idx, 'empresa', e.target.value)} fullWidth /></Grid>
-                  <Grid xs={6}><TextField type="date" label="Desde" value={String(exp.desde || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateExperience(idx, 'desde', e.target.value)} fullWidth /></Grid>
-                  <Grid xs={6}><TextField type="date" label="Hasta" value={String(exp.hasta || '').slice(0, 10)} InputLabelProps={{ shrink: true }} onChange={e => updateExperience(idx, 'hasta', e.target.value)} fullWidth /></Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <TextField 
+                      label="Puesto / Título" 
+                      value={exp.puesto || ''} 
+                      onChange={e => updateExperience(idx, 'puesto', e.target.value)} 
+                      fullWidth 
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <WorkIcon fontSize="small" color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <TextField 
+                      label="Empresa" 
+                      value={exp.empresa || ''} 
+                      onChange={e => updateExperience(idx, 'empresa', e.target.value)} 
+                      fullWidth 
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <BusinessIcon fontSize="small" color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 6 }}>
+                    <TextField 
+                      type="date" 
+                      label="Desde" 
+                      value={String(exp.desde || '').slice(0, 10)} 
+                      InputLabelProps={{ shrink: true }} 
+                      onChange={e => updateExperience(idx, 'desde', e.target.value)} 
+                      fullWidth 
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <CalendarIcon fontSize="small" color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 6 }}>
+                    <TextField 
+                      type="date" 
+                      label="Hasta" 
+                      value={String(exp.hasta || '').slice(0, 10)} 
+                      InputLabelProps={{ shrink: true }} 
+                      onChange={e => updateExperience(idx, 'hasta', e.target.value)} 
+                      fullWidth 
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <CalendarIcon fontSize="small" color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
                 </Grid>
               </Card>
             ))}
-            <Button startIcon={<AddIcon />} onClick={addExperience} variant="text" sx={{ alignSelf: 'flex-start' }}>Añadir Experiencia</Button>
+            <Button 
+              startIcon={<AddIcon />} 
+              onClick={addExperience} 
+              fullWidth
+              variant="outlined" 
+              sx={{ 
+                borderStyle: 'dashed', 
+                borderWidth: '2px',
+                color: 'text.secondary',
+                justifyContent: 'center',
+                py: 1.5,
+                '&:hover': {
+                  borderWidth: '2px',
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  bgcolor: 'action.hover'
+                }
+              }}
+            >
+              Añadir Experiencia
+            </Button>
           </Stack>
         </Grid>
-        <Grid xs={12} md={5}>
+        <Grid size={{ xs: 12, md: 5 }}>
           <ExperienceDataReviewCard data={reviewData} />
         </Grid>
       </Grid>
@@ -424,14 +804,65 @@ const ExperienceForm = ({ data, onChange, reviewData }) => {
 
 // --- Componente UploadCV con el botón de descarga corregido ---
 const UploadCV = ({ existingFile, lastUpdated, onFileSelect, reviewData, newFile }) => {
-  const [selectedFileName, setSelectedFileName] = useState("");
+  const [selectedFileName, setSelectedFileName] = useState(newFile?.name || "");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [openPreview, setOpenPreview] = useState(false);
+  const [error, setError] = useState("");
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [numPages, setNumPages] = useState(null);
+  const [pageNumber, setPageNumber] = useState(1);
+
+  // Corrección: verificar ambas propiedades por si el backend envía fileName o filename
+  const fallbackName = reviewData?.nombre ? `CV_${reviewData.nombre.replace(/\s+/g, '_')}_${(reviewData.apellido || '').replace(/\s+/g, '_')}.pdf` : "CV_Actual.pdf";
+  const existingFileName = existingFile?.fileName || existingFile?.filename || (existingFile?.providerId ? fallbackName : null);
+
+  useEffect(() => {
+    if (newFile) {
+      const objectUrl = URL.createObjectURL(newFile);
+      setPreviewUrl(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [newFile]);
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
+    setError("");
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError("El archivo excede el tamaño máximo permitido de 5MB.");
+        event.target.value = ""; // Limpiar el input para permitir reintentar
+        return;
+      }
+
       setSelectedFileName(file.name);
       onFileSelect(file);
+    }
+  };
+
+  const handleOpenPreview = async () => {
+    setError("");
+    setPageNumber(1); // Resetear a la primera página
+    if (newFile) {
+      setOpenPreview(true);
+    } else if (existingFile?.providerId) {
+      setIsPreviewLoading(true);
+      try {
+        const { data } = await getMyCvDownloadUrlApi();
+        if (data?.downloadUrl) {
+          setPreviewUrl(data.downloadUrl);
+          setOpenPreview(true);
+        } else {
+          setError("No se pudo obtener la vista previa.");
+        }
+      } catch (error) {
+        console.error("Error al cargar vista previa:", error);
+        setError("Error al cargar la vista previa. Intente descargar el archivo.");
+      } finally {
+        setIsPreviewLoading(false);
+      }
     }
   };
 
@@ -453,7 +884,7 @@ const UploadCV = ({ existingFile, lastUpdated, onFileSelect, reviewData, newFile
   return (
     <Fade in={true}>
       <Grid container spacing={4}>
-        <Grid xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <Stack spacing={3}>
             <Typography variant="h6" gutterBottom>Adjunta tu CV (Formato PDF)</Typography>
             <Typography variant="body2" color="text.secondary">
@@ -464,40 +895,106 @@ const UploadCV = ({ existingFile, lastUpdated, onFileSelect, reviewData, newFile
                 {selectedFileName ? "Cambiar archivo" : "Seleccionar Archivo"}
                 <VisuallyHiddenInput type="file" accept=".pdf" onChange={handleFileChange} />
               </Button>
-
-              {existingFile?.providerId && !selectedFileName && (
-                <Button
-                  variant="contained"
-                  startIcon={isDownloading ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
-                  onClick={handleDownload}
-                  disabled={isDownloading}
-                >
-                  {isDownloading ? "Obteniendo..." : "Descargar CV Actual"}
-                </Button>
-              )}
             </Stack>
 
-            {selectedFileName ? (
+            {error && (
+              <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
+            )}
+
+            {selectedFileName && (
               <Alert severity="info" sx={{ mt: 2 }}>
                 Nuevo archivo seleccionado: <strong>{selectedFileName}</strong>. Se guardará al final del proceso.
-              </Alert>
-            ) : existingFile?.filename ? (
-              <Alert severity="success" sx={{ mt: 2 }}>
-                Ya tienes un CV guardado: <strong>{existingFile.filename}</strong>
-                {lastUpdated && (
-                  <Typography variant="caption" display="block">
-                    (Última actualización: {new Date(lastUpdated).toLocaleDateString('es-AR')})
-                  </Typography>
+                {previewUrl && (
+                  <Button 
+                    size="small" 
+                    startIcon={<VisibilityIcon />} 
+                    onClick={() => setOpenPreview(true)}
+                    sx={{ display: 'block', mt: 1 }}
+                  >
+                    Ver Vista Previa
+                  </Button>
                 )}
               </Alert>
-            ) : (
-              <Alert severity="warning" sx={{ mt: 2 }}>
-                Aún no has subido ningún archivo de CV.
-              </Alert>
             )}
+
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" fontWeight="bold">
+                Último CV cargado:
+              </Typography>
+              {existingFileName ? (
+                <Box>
+                  <Stack direction="row" alignItems="center" spacing={1} mt={0.5}>
+                    <Link 
+                      component="button" 
+                      variant="body1" 
+                      onClick={handleDownload} 
+                      disabled={isDownloading}
+                      sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}
+                    >
+                      {existingFileName} <DownloadIcon fontSize="small" />
+                    </Link>
+                    <CheckCircleIcon color="success" fontSize="small" />
+                    {!selectedFileName && existingFile?.providerId && (
+                      <IconButton 
+                        onClick={handleOpenPreview} 
+                        size="small" 
+                        color="primary" 
+                        title="Ver Vista Previa"
+                        disabled={isPreviewLoading}
+                      >
+                        {isPreviewLoading ? <CircularProgress size={20} /> : <VisibilityIcon />}
+                      </IconButton>
+                    )}
+                  </Stack>
+                  {lastUpdated && (
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(lastUpdated).toLocaleDateString('es-AR')}
+                    </Typography>
+                  )}
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  No hay un CV cargado.
+                </Typography>
+              )}
+            </Box>
+
+            <Dialog open={openPreview} onClose={() => setOpenPreview(false)} fullWidth maxWidth="lg">
+              <DialogContent sx={{ minHeight: '60vh', p: 0, bgcolor: 'grey.200', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                {previewUrl && (
+                  <Document
+                    file={previewUrl}
+                    onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                    onLoadError={(e) => console.error("Error al cargar PDF:", e)}
+                    loading={<CircularProgress />}
+                    error={<Box p={3}><Typography color="error">No se pudo cargar el documento. Es posible que el enlace haya expirado.</Typography></Box>}
+                  >
+                    <Page 
+                      pageNumber={pageNumber} 
+                      renderTextLayer={false} 
+                      renderAnnotationLayer={false} 
+                      canvasBackground="white"
+                      width={600} // Ancho base, se ajusta responsive
+                    />
+                  </Document>
+                )}
+              </DialogContent>
+              <DialogActions>
+                <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', pl: 2 }}>
+                  {numPages && (
+                    <Typography variant="body2">
+                      Página {pageNumber} de {numPages}
+                    </Typography>
+                  )}
+                </Box>
+                <Button disabled={pageNumber <= 1} onClick={() => setPageNumber(p => p - 1)}>Anterior</Button>
+                <Button disabled={pageNumber >= numPages} onClick={() => setPageNumber(p => p + 1)}>Siguiente</Button>
+                <Button onClick={() => setOpenPreview(false)}>Cerrar</Button>
+              </DialogActions>
+            </Dialog>
           </Stack>
         </Grid>
-        <Grid xs={12} md={5}>
+        <Grid size={{ xs: 12, md: 5 }}>
           <CvFileDataReviewCard data={reviewData} newFile={newFile} />
         </Grid>
       </Grid>

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { requireRole } from "../middleware/role.middleware.js";
-
+import { adminResetUserPassword } from "../controllers/user.controller.js";
 // --- Importa TODOS los controladores necesarios para las rutas de Admin ---
 import {
   listUsers,
@@ -53,6 +53,7 @@ userRouter.patch("/:id/revoke-admin", revokeAdmin); // PATCH /api/admin/users/:i
 userRouter.patch("/:id/status", adminSetUserStatus); // PATCH /api/admin/users/:id/status
 userRouter.patch("/:id/role", adminSetUserRole);     // PATCH /api/admin/users/:id/role
 userRouter.get("/:userId/cv/download", downloadCvByUserId); // GET /api/admin/users/:userId/cv/download
+userRouter.post("/:id/reset-password", requireRole("admin"), adminResetUserPassword); // POST /api/admin/users/:id/reset-password
 router.use("/users", userRouter); // Monta las rutas de usuario bajo /api/admin/users
 
 // --- Gestión de CVs --- (/api/admin/cvs)

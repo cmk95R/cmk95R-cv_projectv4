@@ -11,10 +11,12 @@ import connectDB from "./db/db.js";
 // --- 1. Importaciones de Rutas (Mantenemos todas por ahora) ---
 import authRoutes from "./routes/authRoutes.js";
 import cvRoutes from "./routes/cvRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 import searchesRoutes from "./routes/searches.routes.js"; // Rutas públicas y de usuario
 import applicationsRoutes from "./routes/applications.routes.js"; // Rutas de usuario
 import adminRoutes from "./routes/adminRoutes.js"; // <-- CORRECCIÓN: Importamos el router de admin centralizado
 import geoRoutes from "./routes/geoRoutes.js"; // Rutas públicas
+import areasRoutes from "./routes/areas.Routes.js"; // Rutas públicas
 import { initGooglePassport } from "./auth/google.strategy.js";
 
 dotenv.config();
@@ -84,11 +86,15 @@ const apiRouter = express.Router(); // Router principal para /api
 
 // Montamos las rutas relevantes para usuarios bajo /api
 apiRouter.use("/auth", authRoutes);            // /api/auth/... (Registro, Login, Google, Verify, Me)
+apiRouter.use("/users", userRoutes);           // /api/users/... (Perfil, Edición Admin)
 apiRouter.use("/cv", cvRoutes);                // /api/cv/... (Rutas /me para el CV del usuario)
 apiRouter.use("/searches", searchesRoutes);    // /api/searches/... (Listar, Detalle, Apply)
 apiRouter.use("/applications", applicationsRoutes); // /api/applications/... (Rutas /me y /:id para postulaciones del usuario)
 apiRouter.use("/geo", geoRoutes);              // /api/geo/... (Provincias, Localidades - públicas)
-// Montamos TODAS las rutas de admin bajo /api/admin
+// Montamos TODAS las rutas de admin bajo /api/
+
+apiRouter.use("/areas", areasRoutes);          // /api/areas/... (Gestión de áreas)
+
 apiRouter.use("/admin", adminRoutes);
 // Finalmente, montamos el router principal de la API en la app
 app.use("/api", apiRouter);

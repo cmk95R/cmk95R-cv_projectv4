@@ -4,11 +4,13 @@ import { styled, useTheme } from "@mui/material/styles";
 import {
   Box, Drawer as MuiDrawer, AppBar as MuiAppBar, Toolbar, List, CssBaseline,
   Typography, Divider, IconButton, ListItem, ListItemButton, ListItemIcon, ListItemText,
-  Stack, Avatar, Tooltip, Menu, MenuItem, Button,
+  Stack, Avatar, Tooltip, Menu, MenuItem, Button, Dialog, DialogTitle, DialogContent, 
+  DialogContentText, DialogActions
 } from "@mui/material";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
+import { getMyCvApi } from "../api/cv";
 
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -24,6 +26,7 @@ import WorkIcon from "@mui/icons-material/Work";
 import FindInPageIcon from '@mui/icons-material/FindInPage';
 import LogoutIcon from "@mui/icons-material/Logout";
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 
 const drawerWidth = 280;
 
@@ -58,7 +61,9 @@ const AppBar = styled(MuiAppBar, { shouldForwardProp: (prop) => prop !== "open" 
   ({ theme, open }) => ({
     zIndex: theme.zIndex.drawer + 1,
     boxShadow: 'none',
+    //Cambiar color de la AppBar
     background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+    /////////////
     color: theme.palette.common.white,
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
@@ -83,11 +88,19 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== "open" 
     boxSizing: "border-box",
     ...(open && {
       ...openedMixin(theme),
-      "& .MuiDrawer-paper": openedMixin(theme),
+      "& .MuiDrawer-paper": {
+        ...openedMixin(theme),
+        display: "flex",
+        flexDirection: "column",
+      },
     }),
     ...(!open && {
       ...closedMixin(theme),
-      "& .MuiDrawer-paper": closedMixin(theme),
+      "& .MuiDrawer-paper": {
+        ...closedMixin(theme),
+        display: "flex",
+        flexDirection: "column",
+      },
     }),
   })
 );
@@ -95,12 +108,37 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== "open" 
 export default function DashboardLayout() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = React.useContext(AuthContext);
 
   // === INICIALIZAMOS 'open' a false para que esté cerrado al inicio y se expanda con hover ===
   const [open, setOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const menuOpen = Boolean(anchorEl);
+  const [openProfileAlert, setOpenProfileAlert] = React.useState(false);
+
+  // Verificación de perfil incompleto al iniciar sesión
+  React.useEffect(() => {
+    const checkProfile = async () => {
+      // Solo verificamos si es un candidato ('user') y no está ya en la página de perfil
+      if (user && user.rol === 'user' && location.pathname !== '/profile') {
+        try {
+          const { data } = await getMyCvApi();
+          const cv = data.cv;
+          
+          // Validamos si falta el archivo de CV (providerId) o si el objeto CV no existe
+          if (!cv || !cv.cvFile?.providerId) {
+            setOpenProfileAlert(true);
+          }
+        } catch (error) {
+          // Si da error (ej: 404 porque no existe CV), asumimos perfil incompleto
+          setOpenProfileAlert(true);
+        }
+      }
+    };
+
+    checkProfile();
+  }, [user]); // Se ejecuta cuando el usuario se carga (login/refresh)
 
   // handleDrawerOpen y handleDrawerClose ya no se usarán por el IconButton,
   // pero los mantengo por si decides volver a un comportamiento de click.
@@ -128,10 +166,11 @@ export default function DashboardLayout() {
 
   const adminMenu = [
     { text: "Inicio", icon: <HomeIcon />, path: "/admin/dashboard" },
+    { text: "Gestion de Áreas", icon: <AssignmentIcon />, path: "/admin/areas"  },
     { text: "Gestión de Búsquedas", icon: <WorkIcon />, path: "/admin/searches" },
-    { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "Gestión de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates" },
     { text: "Gestión de Postulaciones", icon: <AssignmentIndIcon />, path: "/admin/applications" },
+    { text: "Gestión de Usuarios", icon: <AdminPanelSettingsIcon />, path: "/admin/users" },
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ];
 
@@ -140,6 +179,8 @@ export default function DashboardLayout() {
     { text: " Gestión de Busquedas", icon: <WorkIcon />, path: "/admin/searches" },
     { text: " Gestión de Postulaciones", icon: <AssignmentIndIcon />, path: "/admin/applications" },
     { text: " Gestión de Candidatos", icon: <PeopleIcon />, path: "/admin/candidates"},
+    { text: "Gestion de Áreas", icon: <AssignmentIcon />, path: "/admin/areas"  },
+
     { text: "Cerrar Sesión", icon: <LogoutIcon />, action: "logout" },
   ]  
 
@@ -168,7 +209,8 @@ export default function DashboardLayout() {
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
       <AppBar position="fixed" open={open}>
-        <Toolbar sx={{ display: "flex", alignItems: "center" }}>
+        <Toolbar sx={{ display: "flex", alignItems: "center", pt: '5px',
+              pb: '5px', }}>
           {/* EL ICONO DE HAMBURGUESA SE QUITA O SE HACE CONDICIONAL SI EL HOVER ES LA FORMA PRINCIPAL DE ABRIR */}
           {/* Si quieres mantenerlo para una apertura manual en móviles o como alternativa: */}
           <IconButton
@@ -198,6 +240,7 @@ export default function DashboardLayout() {
           >
             {/* Reemplaza '/logo.png' con la ruta a tu logo */}
             <Box component="img" src="/logo_blanco.png" alt="rrhh-logo" sx={{
+              
               height: '35px', // Ajusta la altura según necesites
               width: 'auto'
             }} />
@@ -219,6 +262,7 @@ export default function DashboardLayout() {
               >
                 Ingresar
               </Button>
+
               <Button
                 variant="outlined"
                 onClick={() => navigate("/register")}
@@ -233,15 +277,18 @@ export default function DashboardLayout() {
               >
                 Registrate
               </Button>
+
             </Stack>
           ) : (
             <Stack direction="row" spacing={1} alignItems="center">
               <Typography variant="body2" sx={{ mr: 1, display: { xs: "none", sm: "block" }, color: theme.palette.common.white }}>
                 Hola, <strong>{user.nombre}</strong>
               </Typography>
-              <Tooltip title="Cuenta">
+              <Tooltip title={`${user.nombre} ${user.apellido || ''}`}>
                 <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
-                  <Avatar alt={user.nombre} src={user.avatarUrl || ""} sx={{ bgcolor: theme.palette.primary.light }} />
+                  <Avatar alt={`${user.nombre} ${user.apellido || ''}`} src={user.avatarUrl || ""} sx={{ bgcolor: theme.palette.error.light }}>
+                    {`${user.nombre?.[0] || ''}${user.apellido?.[0] || ''}`.toUpperCase()}
+                  </Avatar>
                 </IconButton>
               </Tooltip>
               <Menu
@@ -286,7 +333,7 @@ export default function DashboardLayout() {
       >
         <DrawerHeader>
           {/* El botón de cerrar aquí ahora se usa solo cuando el drawer está abierto por hover o click */}
-          <IconButton onClick={handleDrawerClose} sx={{ color: theme.palette.text.primary }}>
+          <IconButton onClick={handleDrawerClose} sx={{ color: theme.palette.text.w }}>
             {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
           </IconButton>
         </DrawerHeader>
@@ -324,6 +371,7 @@ export default function DashboardLayout() {
             </motion.div>
           ))}
         </List>
+        
       </Drawer>
       {/* === FIN MODIFICACIÓN CLAVE PARA EL HOVER DEL DRAWER === */}
 
@@ -333,6 +381,29 @@ export default function DashboardLayout() {
           <Outlet />
         </motion.div>
       </Box>
+
+      {/* Modal de Alerta de Perfil Incompleto */}
+      <Dialog
+        open={openProfileAlert}
+        onClose={() => setOpenProfileAlert(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {"¡Completa tu perfil profesional!"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Hemos notado que aún no has cargado tu CV. Para poder postularte a las búsquedas laborales, es necesario que completes tu perfil.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenProfileAlert(false)} color="inherit">Más tarde</Button>
+          <Button onClick={() => { setOpenProfileAlert(false); navigate("/profile"); }} variant="contained" autoFocus>
+            Ir a mi Perfil
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

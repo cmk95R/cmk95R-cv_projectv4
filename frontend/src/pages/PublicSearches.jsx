@@ -15,24 +15,19 @@ import {
   Snackbar,
   Alert,
   Grid,
-  Dialog,
-  DialogContent,
-  DialogActions,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import LinkedInIcon from "@mui/icons-material/LinkedIn";
-import InstagramIcon from "@mui/icons-material/Instagram";
-import FacebookIcon from "@mui/icons-material/Facebook";
 
 import { listPublicSearchesApi } from "../api/searches"; // <-- usa api/client.js por dentro
 import { applyToSearchApi } from "../api/applications"; // si aún no existe, créalo
 import { myApplicationsApi } from "../api/applications";
 import SearchDetailDialog from "../components/ModalSearches"; // 1. Importar el modal
+import SocialMediaDialog from "../components/SocialMediaDialog";
+import Swal from 'sweetalert2';
 const STATUS_COLORS = {
   Activa: "success",
   Pausada: "warning",
@@ -52,7 +47,7 @@ export default function PublicSearches() {
   const [applyingId, setApplyingId] = useState(null);
   const [appliedIds, setAppliedIds] = useState(() => new Set());
   const [selectedSearch, setSelectedSearch] = useState(null); // 2. Estado para el modal
-  const [socialModalOpen, setSocialModalOpen] = useState(false);
+  const [showSocialModal, setShowSocialModal] = useState(false);
   
   const [selectedArea, setSelectedArea] = useState("Todas");
 
@@ -133,7 +128,7 @@ export default function PublicSearches() {
   }, [estadoParam]);
 
   return (
-    <Box sx={{ bgcolor: "#CFE6FF", p: 4, minHeight: "100vh" }}>
+    <Box sx={{ bgcolor: "#d1d1d1c4", p: 4, minHeight: "100vh" }}>
       <Typography variant="h5" gutterBottom>
         Busquedas Activas
       </Typography>
@@ -163,34 +158,7 @@ export default function PublicSearches() {
         />
         <Typography variant="body2">Búsquedas Activas</Typography>
         <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-        {/* <Button
-          variant={filterType === "Todas" ? "contained" : "outlined"}
-          onClick={() => setFilterType("Todas")}
-          sx={{ textTransform: "none" }}
-          disabled={showActive} // si está en "Activas", ignora este filtro
-        >
-          Todas las Búsquedas
-        </Button>
-        <Button
-          variant={filterType === "Busquedas Cerradas" ? "contained" : "outlined"}
-          onClick={() => setFilterType("Busquedas Cerradas")}
-          sx={{ textTransform: "none" }}
-          disabled={showActive}
-        >
-          Búsquedas Cerradas
-        </Button>
-        <Button
-          variant={filterType === "En Pausa" ? "contained" : "outlined"}
-          onClick={() => setFilterType("En Pausa")}
-          sx={{ textTransform: "none" }}
-          disabled={showActive}
-        >
-          En Pausa
-        </Button> */}
-
-        {/* <Button variant="text" onClick={fetchData} sx={{ ml: "auto" }}>
-          Actualizar
-        </Button> */}
+      
       </Stack>
 
       {/* Lista */}
@@ -252,21 +220,64 @@ export default function PublicSearches() {
                               startIcon={alreadyApplied ? <CheckCircleOutlineIcon /> : null}
                               disabled={disabled}
                               onClick={async () => {
-                                if (!user) return navigate("/login");
-                                try {
-                                  setApplyingId(item.id);
-                                  await applyToSearchApi(item.id, { message: "" });
-                                  setAppliedIds(prev => {
-                                    const next = new Set(prev);
-                                    next.add(item.id);
-                                    return next;
+                                if (!user) {
+                                  Swal.fire({
+                                    title: 'Debes iniciar sesión',
+                                    text: "Para postularte, necesitas iniciar sesión y completar tu perfil.",
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Iniciar sesión',
+                                    cancelButtonText: 'Cancelar',
+                                    confirmButtonColor: '#0A5C8D'
+                                  }).then((res) => {
+                                    if (res.isConfirmed) navigate("/login");
                                   });
-                                  setSocialModalOpen(true);
-                                } catch (e) {
-                                  const msg = e?.response?.data?.message || "No se pudo postular";
-                                  setSnack({ open: true, severity: "error", msg });
-                                } finally {
-                                  setApplyingId(null);
+                                  return;
+                                }
+                                
+                                const result = await Swal.fire({
+                                  title: '¿Confirmar postulación?',
+                                  text: `Estás a punto de postularte a "${item.titulo}"`,
+                                  icon: 'question',
+                                  showCancelButton: true,
+                                  confirmButtonText: 'Sí, postularme',
+                                  cancelButtonText: 'Cancelar',
+                                  confirmButtonColor: '#3085d6',
+                                  cancelButtonColor: '#d33',
+                                });
+
+                                if (result.isConfirmed) {
+                                  try {
+                                    setApplyingId(item.id);
+                                    await applyToSearchApi(item.id, { message: "" });
+                                    setAppliedIds(prev => {
+                                      const next = new Set(prev);
+                                      next.add(item.id);
+                                      return next;
+                                    });
+                                    setShowSocialModal(true);
+                                  } catch (e) {
+                                    const msg = e?.response?.data?.message || "No se pudo realizar la postulación.";
+                                    
+                                    // Detectamos si el error es por falta de CV o Perfil
+                                    if (msg.includes("perfil") || msg.includes("CV") || msg.includes("adjuntar")) {
+                                      Swal.fire({
+                                        title: 'Perfil incompleto',
+                                        text: "Para postularte, necesitas completar tu perfil y adjuntar tu CV.",
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Ir a mi perfil',
+                                        cancelButtonText: 'Cancelar',
+                                        confirmButtonColor: '#0A5C8D'
+                                      }).then((res) => {
+                                        if (res.isConfirmed) navigate("/profile");
+                                      });
+                                    } else {
+                                      Swal.fire('Error', msg, 'error');
+                                    }
+                                  } finally {
+                                    setApplyingId(null);
+                                  }
                                 }
                               }}
                             >
@@ -300,54 +311,10 @@ export default function PublicSearches() {
         application={{ search: selectedSearch }}
       />
 
-      {/* Modal Social Media */}
-      <Dialog open={socialModalOpen} onClose={() => setSocialModalOpen(false)} maxWidth="xs" fullWidth>
-        <DialogContent sx={{ textAlign: "center", py: 4 }}>
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          >
-            <CheckCircleOutlineIcon color="success" sx={{ fontSize: 60, mb: 2 }} />
-          </motion.div>
-          <Typography variant="h6" fontWeight="bold" gutterBottom>
-            ¡Postulación enviada!
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 3, fontWeight: 500 }}>
-            Seguinos en nuestras redes para enterarte de nuestras novedades. 
-          </Typography>
-          <Stack direction="row" spacing={3} justifyContent="center">
-            <motion.div whileHover={{ scale: 1.2, rotate: 10 }} whileTap={{ scale: 0.9 }}>
-              <IconButton
-                component="a"
-                href="https://www.linkedin.com/company/asytec/"
-                target="_blank"
-                rel="noopener noreferrer"
-                color="primary"
-              >
-                <LinkedInIcon fontSize="large" />
-              </IconButton>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.2, rotate: -10 }} whileTap={{ scale: 0.9 }}>
-              <IconButton
-                component="a"
-                href="https://www.instagram.com/asytecsistemas/"
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{ color: "#E1306C" }}
-              >
-                <InstagramIcon fontSize="large" />
-              </IconButton>
-            </motion.div>
-            
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
-          <Button onClick={() => setSocialModalOpen(false)} variant="contained">
-            Cerrar
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <SocialMediaDialog 
+        open={showSocialModal} 
+        onClose={() => setShowSocialModal(false)} 
+      />
 
       <Snackbar
         open={snack.open}

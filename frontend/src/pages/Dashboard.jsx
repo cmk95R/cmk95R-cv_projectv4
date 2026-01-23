@@ -10,6 +10,7 @@ import {
     Stack,
     List,
     ListItem,
+    ListItemButton,
     ListItemText,
     ListItemAvatar,
     Divider,
@@ -17,7 +18,8 @@ import {
     Skeleton,
     Alert,
     CardHeader,
-    alpha // Importante para colores semitransparentes
+    alpha, // Importante para colores semitransparentes
+    Tooltip
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import PeopleIcon from '@mui/icons-material/People';
@@ -26,6 +28,10 @@ import RateReviewIcon from '@mui/icons-material/RateReview';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import AddIcon from '@mui/icons-material/Add';
 import ArticleIcon from '@mui/icons-material/Article';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import DescriptionIcon from '@mui/icons-material/Description';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { getDashboardDataApi } from '../api/admin'; // Asegúrate que la ruta a tu API sea correcta
 
 // --- FUNCIÓN HELPER PARA TIEMPO RELATIVO ---
@@ -106,6 +112,7 @@ const DashboardSkeleton = () => (
 export default function AdminDashboard() {
     const [stats, setStats] = useState(null);
     const [recentApplications, setRecentApplications] = useState([]);
+    const [recentUsers, setRecentUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const currentDate = new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -116,8 +123,10 @@ export default function AdminDashboard() {
                 setLoading(true);
                 setError('');
                 const { data } = await getDashboardDataApi();
+
                 setStats(data.stats);
                 setRecentApplications(data.recentApplications);
+                setRecentUsers(data.recentUsers || []);
             } catch (err) {
                 setError(err.response?.data?.message || 'Error al cargar los datos del dashboard.');
             } finally {
@@ -133,6 +142,18 @@ export default function AdminDashboard() {
         return <Container maxWidth="lg" sx={{ mt: 4 }}><Alert severity="error">{error}</Alert></Container>;
     }
 
+    // --- CÁLCULO DE ESTADÍSTICAS ---
+    // Se intenta usar las propiedades pre-calculadas (ej: pendingApplications).
+    // Si no existen, se asume que 'stats' contiene el conteo por estado (ej: "Enviada": 5) y se suman.
+    const pendingCount = stats?.pendingApplications ?? (
+        (stats?.['Enviada'] || 0) + 
+        (stats?.['En revisión'] || 0) + 
+        (stats?.['Preseleccionado'] || 0)
+    );
+    const hiredCount = stats?.hiredApplications ?? (stats?.['Contratado'] || 0);
+    const rejectedCount = stats?.rejectedApplications ?? (stats?.['Rechazado'] || 0);
+    const activeSearchesCount = stats?.activeSearches ?? (stats?.['Activa'] || 0);
+
     return (
         <Box sx={{ flexGrow: 1, p: 3, bgcolor: (theme) => theme.palette.grey[100] }}>
             {/* ENCABEZADO MEJORADO */}
@@ -143,73 +164,161 @@ export default function AdminDashboard() {
 
             {/* TARJETAS DE ESTADÍSTICAS */}
             <Grid container spacing={3} mb={3}>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard title="Postulaciones (últ. 7 días)" value={stats.newApplications} icon={<RateReviewIcon />} color="primary" />
+                <Grid item xs={12} sm={6} md={4}>
+                    <Tooltip title="Cantidad de postulaciones recibidas en la última semana">
+                        <Box>
+                            <StatCard title="Postulaciones (últ. 7 días)" value={stats.newApplications || 0} icon={<RateReviewIcon />} color="primary" />
+                        </Box>
+                    </Tooltip>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard title="Búsquedas Activas" value={stats.activeSearches} icon={<WorkIcon />} color="success" />
+                <Grid item xs={12} sm={6} md={4}>
+                    <Tooltip title="Ofertas de empleo actualmente publicadas y visibles">
+                        <Box>
+                            <StatCard title="Búsquedas Activas" value={activeSearchesCount} icon={<WorkIcon />} color="success" />
+                        </Box>
+                    </Tooltip>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard title="CVs Pendientes" value={stats.pendingApplications} icon={<VisibilityIcon />} color="warning" />
+                <Grid item xs={12} sm={6} md={4}>
+                    <Tooltip title="Solicitudes en estado 'Enviada', 'En revisión' o 'Preseleccionado'.">
+                        <Box>
+                            <StatCard title="Postulaciones Pendientes" value={pendingCount} icon={<VisibilityIcon />} color="warning" />
+                        </Box>
+                    </Tooltip>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard title="Candidatos Totales" value={stats.totalUsers} icon={<PeopleIcon />} color="info" />
+                <Grid item xs={12} sm={6} md={4}>
+                    <Tooltip title="Solicitudes en estado 'Contratado'">
+                        <Box>
+                            <StatCard title="Contratados" value={hiredCount} icon={<CheckCircleIcon />} color="success" />
+                        </Box>
+                    </Tooltip>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                    <Tooltip title="Solicitudes en estado 'Rechazado'">
+                        <Box>
+                            <StatCard title="Rechazados" value={rejectedCount} icon={<CancelIcon />} color="error" />
+                        </Box>
+                    </Tooltip>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                    <Tooltip title="Número total de usuarios registrados como candidatos">
+                        <Box>
+                            <StatCard title="Candidatos Totales" value={stats.totalUsers || 0} icon={<PeopleIcon />} color="info" />
+                        </Box>
+                    </Tooltip>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                    <Tooltip title="Total de usuarios que han subido su archivo de CV">
+                        <Box>
+                            <StatCard title="CVs Cargados" value={stats.totalCvs || 0} icon={<DescriptionIcon />} color="secondary" />
+                        </Box>
+                    </Tooltip>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                    <Tooltip title="Usuarios que se han registrado en el último mes">
+                        <Box>
+                            <StatCard title="Nuevos Usuarios (30 días)" value={stats.newUsers || 0} icon={<PersonAddIcon />} color="error" />
+                        </Box>
+                    </Tooltip>
                 </Grid>
             </Grid>
 
             {/* SECCIÓN PRINCIPAL */}
             <Grid container spacing={3}>
-                {/* ÚLTIMAS POSTULACIONES */}
-                <Grid item xs={12} lg={8}>
-                    <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
-                        <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Actividad Reciente" />
-                        <List sx={{ p: 0 }}>
-                            {recentApplications.map((app, index) => (
-                                <React.Fragment key={app._id}>
-                                    <ListItem
-                                        button
-                                        // --- CORRECCIÓN: Añadir comprobación para el enlace ---
-                                        component={app.user ? RouterLink : 'div'} // Usar 'div' si el usuario no existe para que no sea un enlace roto
-                                        to={app.user ? `/admin/applications?q=${app.user.nombre}` : undefined}
-                                        sx={{ py: 1.5, px: 3 }}
-                                    >
-                                        <ListItemAvatar>
-                                            {/* --- CORRECCIÓN: Comprobación para el Avatar --- */}
-                                            <Avatar sx={{ bgcolor: 'secondary.light' }}>
-                                                {app.user ? `${app.user.nombre[0]}${app.user.apellido[0]}` : 'X'}
-                                            </Avatar>
-                                        </ListItemAvatar>
-                                        <ListItemText
-                                            // --- CORRECCIÓN: Comprobación para el texto principal y secundario ---
-                                            primary={
-                                                <Typography variant="body1" fontWeight="500">
-                                                    {app.user ? `${app.user.nombre} ${app.user.apellido}` : 'Usuario Eliminado'}
-                                                </Typography>
-                                            }
-                                            secondary={`Se postuló a ${app.search ? app.search.titulo : 'una búsqueda eliminada'}`}
-                                        />
-                                        <Typography variant="body2" color="text.secondary">
-                                            {formatTimeAgo(app.createdAt)}
-                                        </Typography>
-                                    </ListItem>
-                                    {index < recentApplications.length - 1 && <Divider component="li" variant="inset" />}
-                                </React.Fragment>
-                            ))}
-                        </List>
-                        <Box sx={{ p: 2, textAlign: 'right' }}>
-                            <Button component={RouterLink} to="/admin/applications" size="small">Ver Todas</Button>
-                        </Box>
-                    </Card>
-                </Grid>
+                {/* COLUMNA IZQUIERDA: LISTADOS */}
+                <Grid item xs={12} lg={8} >
+                    <Grid container spacing={3}>
+                        {/* ÚLTIMAS POSTULACIONES */}
+                        <Grid item xs={12} md={6}>
+                        <Card sx={{ borderRadius: 4, boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)', height: '100%' }}>
+                            <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Actividad Reciente" />
+                            <List sx={{ p: 0 }}>
+                                {recentApplications.map((app, index) => (
+                                    <React.Fragment key={app._id}>
+                                        <ListItem disablePadding>
+                                            <ListItemButton
+                                            component={app.user ? RouterLink : 'div'} // Usar 'div' si el usuario no existe para que no sea un enlace roto
+                                            to={app.user ? `/admin/applications?q=${app.user.nombre}` : undefined}
+                                            sx={{ py: 1.5, px: 3 }}
+                                        >
+                                            <ListItemAvatar>
+                                                {/* --- CORRECCIÓN: Comprobación para el Avatar --- */}
+                                                <Avatar sx={{ bgcolor: 'secondary.light' }}>
+                                                    {app.user ? `${app.user.nombre[0]}${app.user.apellido[0]}` : 'X'}
+                                                </Avatar>
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                // --- CORRECCIÓN: Comprobación para el texto principal y secundario ---
+                                                primary={
+                                                    <Typography variant="body1" fontWeight="500">
+                                                        {app.user ? `${app.user.nombre} ${app.user.apellido}` : 'Usuario Eliminado'}
+                                                    </Typography>
+                                                }
+                                                secondary={`${app.state} • ${app.search ? app.search.titulo : 'Búsqueda eliminada'}`}
+                                            />
+                                            <Typography variant="body2" color="text.secondary">
+                                                {formatTimeAgo(app.createdAt)}
+                                            </Typography>
+                                            </ListItemButton>
+                                        </ListItem>
+                                        {index < recentApplications.length - 1 && <Divider component="li" variant="inset" />}
+                                    </React.Fragment>
+                                ))}
+                            </List>
+                            <Box sx={{ p: 2, textAlign: 'right' }}>
+                                <Button component={RouterLink} to="/admin/applications" size="small">Ver Todas</Button>
+                            </Box>
+                        </Card>
+                        </Grid>
 
-                {/* ACCESOS DIRECTOS */}
-                <Grid item xs={12} lg={4}>
-                    <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
+                        {/* NUEVOS USUARIOS REGISTRADOS */}
+                        <Grid item xs={12} md={6}>
+                        <Card sx={{ borderRadius: 4, boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)', height: '100%' }}>
+                            <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Nuevos Usuarios Registrados" />
+                            <List sx={{ p: 0 }}>
+                                {recentUsers.map((u, index) => (
+                                    <React.Fragment key={u._id}>
+                                        <ListItem disablePadding>
+                                            <ListItemButton
+                                            component={RouterLink}
+                                            to={`/admin/users?q=${u.email}`}
+                                            sx={{ py: 1.5, px: 3 }}
+                                        >
+                                            <ListItemAvatar>
+                                                <Avatar sx={{ bgcolor: 'primary.light' }}>
+                                                    {u.nombre ? u.nombre[0] : 'U'}
+                                                </Avatar>
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                primary={
+                                                    <Typography variant="body1" fontWeight="500">
+                                                        {u.nombre} {u.apellido}
+                                                    </Typography>
+                                                }
+                                                secondary={u.email}
+                                            />
+                                            <Typography variant="body2" color="text.secondary">
+                                                {formatTimeAgo(u.createdAt)}
+                                            </Typography>
+                                            </ListItemButton>
+                                        </ListItem>
+                                        {index < recentUsers.length - 1 && <Divider component="li" variant="inset" />}
+                                    </React.Fragment>
+                                ))}
+                            </List>
+                            <Box sx={{ p: 2, textAlign: 'right' }}>
+                                <Button component={RouterLink} to="/admin/users" size="small">Ver Todos</Button>
+                            </Box>
+                        </Card>
+                        </Grid>
+                        <Card sx={{ borderRadius: 4, height: '100%', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.1)' }}>
                         <CardHeader titleTypographyProps={{ fontWeight: 'bold' }} title="Acciones Rápidas" />
                         <CardContent>
                             <Stack spacing={2}>
                                 <Button variant="contained" startIcon={<AddIcon />} component={RouterLink} to="/admin/searches/" size="large" sx={{ justifyContent: 'flex-start', py: 1.5 }}>
                                     Crear Nueva Búsqueda
+                                </Button>
+                                <Button variant="contained" startIcon={<AddIcon />} component={RouterLink} to="/admin/areas/" size="large" sx={{ justifyContent: 'flex-start', py: 1.5 }}>
+                                    Crear Nueva Área
                                 </Button>
                                 <Button variant="outlined" startIcon={<ArticleIcon />} component={RouterLink} to="/admin/applications" size="large" sx={{ justifyContent: 'flex-start', py: 1.5 }}>
                                     Gestionar Postulaciones
@@ -219,9 +328,21 @@ export default function AdminDashboard() {
                                 </Button>
                             </Stack>
                         </CardContent>
-                    </Card>
+                    </Card>        
+                    </Grid>
                 </Grid>
+                
             </Grid>
+
+
+            <Box>
+                {/* ACCESOS DIRECTOS */}
+
+                <Grid item xs={12} lg={4}>
+                    
+                </Grid>
+                
+            </Box>
         </Box>
     );
 }

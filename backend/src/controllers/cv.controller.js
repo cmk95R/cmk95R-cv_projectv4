@@ -53,17 +53,31 @@ async function normalizePayload(body, file, user) {
   
   // --- Lógica mejorada para la subida/sobrescritura de archivos ---
   if (file) {
+    // Validar que el archivo sea PDF
+    if (file.mimetype !== 'application/pdf') {
+      const error = new Error("Formato de archivo no válido. Solo se permiten archivos PDF.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Validar tamaño máximo (5MB)
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB en bytes
+    if (file.size > MAX_SIZE) {
+      const error = new Error("El archivo excede el tamaño máximo permitido de 5MB.");
+      error.statusCode = 400;
+      throw error;
+    }
+
     const existingCv = await Cv.findOne({ user: user._id }).lean();
     // Si se encontró un CV existente y tenía un archivo, guardamos su ID para una posible eliminación.
     if (existingCv?.cvFile?.providerId) {
       oldFileIdToDelete = existingCv.cvFile.providerId;
     }
-    const oldFileName = existingCv?.cvFile?.fileName; // Nombre del archivo anterior
-    const oldFileId = existingCv?.cvFile?.providerId; // ID del archivo anterior
 
-    // Define el nombre del archivo: reutiliza el anterior o crea uno nuevo
-    const originalName = file.originalname.split('.').slice(0, -1).join('_').replace(/[^a-zA-Z0-9]/g, '');
-    const fileName = oldFileName || `CV_${originalName}_${user._id}.pdf`;
+    // Generar nombre con formato: CV_Nombre_Apellido_YYYY-MM-DD.pdf
+    const dateStr = new Date().toISOString().split('T')[0];
+    const cleanStr = (str) => (str || "").trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_áéíóúÁÉÍÓÚñÑ]/g, '');
+    const fileName = `CV_${cleanStr(user.nombre)}_${cleanStr(user.apellido)}_${dateStr}.pdf`;
 
     const uploadResult = await uploadFileToOneDrive(file.buffer, fileName, "CVs");
 

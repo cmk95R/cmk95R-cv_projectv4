@@ -1,8 +1,9 @@
 // routes/userRoutes.js
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireRole } from "../middleware/role.middleware.js";
 // Importa solo los controladores necesarios para las rutas de usuario
-import { editUser } from "../controllers/user.controller.js";
+import { editUser, adminUpdateUser, deleteUser } from "../controllers/user.controller.js";
 
 const router = Router();
 
@@ -10,6 +11,12 @@ const router = Router();
 
 // PATCH /api/users/me - Actualizar datos del propio perfil del usuario
 router.patch("/me", requireAuth, editUser);
+
+// PUT /api/users/:id - Admin actualiza datos de usuario
+router.put("/:id", requireAuth, requireRole("admin"), adminUpdateUser);
+
+// DELETE /api/users/:id - Admin elimina usuario
+router.delete("/:id", requireAuth, requireRole("admin"), deleteUser);
 
 // NOTA: La ruta GET /api/auth/me (para obtener los datos) ya está en authRoutes.js
 

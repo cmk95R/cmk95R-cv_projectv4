@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Container,
   Paper,
+  Box,
   Typography,
   Stack,
   TextField,
@@ -137,9 +138,11 @@ export default function Login() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 8 }}>
-      <Paper sx={{ p: 6, borderRadius: 3 }} elevation={4}>
+     
+
+      <Paper sx={{ p: { xs: 3, sm: 5 }, borderRadius: 3 }} elevation={4}>
         <form id="login-form" onSubmit={handleSubmit} style={{ width: "100%" }}>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
+          <Typography variant="h4" fontWeight={700} gutterBottom align="Left">
             Bienvenido
           </Typography>
           <Typography variant="body1" sx={{ mb: 3 }}>
@@ -203,10 +206,15 @@ export default function Login() {
           <Button
             type="submit"
             variant="contained"
-            color="primary"
             fullWidth
             disabled={loading}
-            sx={{ mt: 2, py: 1.2, fontWeight: 600 }}
+            sx={{
+              mt: 2, py: 1.2, fontWeight: 600,
+              backgroundColor: 'primary.main',
+              color: 'common.white ',
+              '&:hover': {
+                backgroundColor: 'primary.dark' }
+            }}
           >
             {loading ? "Ingresando..." : "INGRESAR"}
           </Button>

@@ -1,51 +1,32 @@
-// c:\Users\CMK-DEV\Desktop\PriorityGroup\priority_group\frontend\src\components\ApplicationDetailDialog.jsx
+// c:\Users\CMK-DEV\Desktop\PriorityGroup\priority_group\frontend\src\components\UserDetailsDialog.jsx
 
 import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   Box, Typography, Avatar, Chip, Grid, Stack, CircularProgress
 } from '@mui/material';
-import { getCvByIdApi } from '../../api/cv'; // Asegúrate que esta ruta sea correcta en tu proyecto
+import { getCvByIdApi } from '../../api/cv';
 
-
-export default function ApplicationDetailDialog({ open, onClose, application }) {
+export default function UserDetailsDialog({ open, onClose, user }) {
   const [fullUser, setFullUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const colorFont = "#084a70";
 
   useEffect(() => {
-    if (open && application) {
+    if (open && user) {
       const loadDetails = async () => {
         setLoading(true);
         try {
-          // 1. Identificamos al usuario base dentro de la application
-          // (Puede venir como 'applicant', 'user' o 'candidate')
-          const baseUser = application.applicant || application.user || application.candidate || {};
-          
-          // 2. Buscamos el ID del CV para llamar a la API
-          // Priorizamos el cvId que viene en el usuario, o la referencia en la application
-          let cvIdToFetch = baseUser.cvId;
-
-          // Si no está directo en el usuario, miramos si la application tiene la referencia
-          if (!cvIdToFetch && application.cvRef) {
-             // A veces cvRef es un objeto {_id: ...} y a veces un string
-             cvIdToFetch = typeof application.cvRef === 'object' ? application.cvRef._id : application.cvRef;
-          }
-          // Fallback: Si no hay cvRef, intentamos sacar el ID del snapshot
-          if (!cvIdToFetch && application.cvSnapshot?._id) {
-             cvIdToFetch = application.cvSnapshot._id;
-          }
-
-          // 3. Lógica idéntica a UserDetailsDialog: Si hay ID, consultamos la API
-          if (cvIdToFetch) {
-            const { data } = await getCvByIdApi(cvIdToFetch);
+          // Si el usuario tiene un CV asociado, cargamos los detalles completos
+          if (user.cvId) {
+            const { data } = await getCvByIdApi(user.cvId);
             const cvData = data.cv || {};
 
-            // Fusionamos datos (Prioridad: API > Usuario Base)
+            // Fusionamos los datos del usuario base con los datos detallados del CV
             const enrichedUser = {
-              ...baseUser,
+              ...user,
               ...cvData,
-              // Normalización exacta de UserDetailsDialog
+              // Normalizamos arrays para asegurar que el modal los lea bien
               experiencia: (cvData.experiencia || []).map(item => ({
                 ...item,
                 fechaInicio: item.desde || item.fechaInicio,
@@ -57,68 +38,63 @@ export default function ApplicationDetailDialog({ open, onClose, application }) 
                 fechaFin: item.hasta || item.fechaFin,
                 titulo: item.carrera || item.titulo
               })),
-              sobreMi: cvData.perfil || cvData.sobreMi || baseUser.sobreMi || "",
-              fechaNacimiento: cvData.nacimiento || cvData.fechaNacimiento || baseUser.fechaNacimiento,
-              linkedin: cvData.linkedin || baseUser.linkedin || "",
-              cvFile: cvData.cvFile || baseUser.cvFile,
-              direccion: cvData.user?.direccion || baseUser.direccion || "",
-              telefono: cvData.telefono || cvData.user?.telefono || baseUser.telefono || ""
+              sobreMi: cvData.perfil || cvData.sobreMi || user.sobreMi || "",
+              fechaNacimiento: cvData.nacimiento || cvData.fechaNacimiento || user.fechaNacimiento,
+              linkedin: cvData.linkedin || user.linkedin || "",
+              cvFile: cvData.cvFile || user.cvFile
             };
             setFullUser(enrichedUser);
           } else {
-            // Si NO tiene CV asociado (caso raro), mostramos los datos básicos del usuario
+            // Si no tiene CV, usamos los datos que ya tenemos
             setFullUser({
-                ...baseUser,
-                experiencia: baseUser.experiencia || [],
-                educacion: baseUser.educacion || []
+                ...user,
+                experiencia: user.experiencia || [],
+                educacion: user.educacion || []
             });
           }
         } catch (error) {
-          console.error("Error cargando detalles desde API:", error);
-          // Fallback: mostrar lo que tengamos a mano si falla la API
-          setFullUser(application.applicant || {}); 
+          console.error("Error cargando detalles del CV:", error);
+          setFullUser(user); // Fallback al usuario básico si falla la API
         } finally {
           setLoading(false);
         }
       };
       loadDetails();
     } else {
-        setFullUser(null);
+        setFullUser(null); // Limpiamos al cerrar
     }
-  }, [open, application]);
+  }, [open, user]);
 
-  // Función para manejar la descarga del CV desde la postulación
+  // Función para manejar la descarga del CV (Igual que en AdminCandidateGrid)
   const handleDownloadCv = async () => {
-    // CAMBIO: Usamos el ID del usuario para descargar su CV actual (igual que en UserDetailsDialog)
-// application.user viene poblado con el objeto usuario desde el backend (listApplications)
-const userId = application?.user?._id || application?.user; if (!userId) return;
+        // CORRECCIÓN: Usamos el ID del usuario original (prop 'user') para evitar conflictos con el ID del CV
+    // cuando 'selectedUser' es el objeto fusionado.
+    const userId = user?.id || user?._id || selectedUser?.user?._id || selectedUser?.user || selectedUser?._id;
+    
+    if (!userId) return;
+
+    
     try {
       const token = localStorage.getItem('token');
-      // Usamos el endpoint de CV de USUARIOS (/cv/admin/users/...) que ya sabemos que funciona
-     const response = await fetch(`${import.meta.env.VITE_API_URL}/cv/admin/users/${userId}/cv/download`, {
-         headers: { 'Authorization': `Bearer ${token}` }
-       });
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/cv/admin/users/${userId}/cv/download`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "No se pudo obtener el enlace de descarga");
-      }
+      if (!response.ok) throw new Error("No se pudo obtener el enlace de descarga");
       
       const data = await response.json();
       if (data.downloadUrl) window.open(data.downloadUrl, '_blank');
     } catch (error) {
       console.error("Error al descargar CV:", error);
-      alert(error.message || "Error al intentar descargar el archivo.");
+      alert("Error al intentar descargar el archivo. Puede que no exista o haya expirado.");
     }
   };
 
-  // Variables para el renderizado
-  const selectedUser = fullUser || {};
-  const search = application?.search; // Datos de la búsqueda separados
+  // Usamos fullUser si está cargado, sino el user inicial para mostrar algo (o null)
+  const selectedUser = fullUser || user;
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
-        {/* CABECERA (Idéntica a UserDetailsDialog) */}
         <DialogTitle sx={{ bgcolor: '#f8f9fa', borderBottom: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar sx={{ width: 56, height: 56, bgcolor: colorFont, fontSize: '1.5rem' }}>
             {`${selectedUser?.nombre?.[0] || ''}${selectedUser?.apellido?.[0] || ''}`.toUpperCase()}
@@ -145,23 +121,16 @@ const userId = application?.user?._id || application?.user; if (!userId) return;
                 />
               )}
             </Stack>
-            <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="body2" color="text.secondary">
-                    {selectedUser?.email}
-                </Typography>
-                {/* Chip extra para estado de postulación */}
-                {application?.state && (
-                     <Chip label={application.state} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem', ml: 1, textTransform: 'uppercase' }} />
-                )}
-            </Stack>
+            <Typography variant="body2" color="text.secondary">
+              {selectedUser?.email}
+            </Typography>
           </Box>
           <Box sx={{ ml: 'auto', display: { xs: 'none', sm: 'block' } }}>
-            <Chip label={selectedUser?.rol || "Candidato"} size="small" color="default" sx={{ mr: 1, textTransform: 'uppercase' }} />
+            <Chip label={selectedUser?.rol} size="small" color={selectedUser?.rol === 'admin' ? 'secondary' : selectedUser?.rol === 'rrhh' ? 'info' : 'default'} sx={{ mr: 1, textTransform: 'uppercase' }} />
+            <Chip label={selectedUser?.estado} size="small" color={selectedUser?.estado === 'activo' ? 'success' : 'error'} variant="outlined" sx={{ textTransform: 'uppercase' }} />
           </Box>
         </DialogTitle>
-        
         <br />
-        
         <DialogContent sx={{ p: 3 }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -169,22 +138,22 @@ const userId = application?.user?._id || application?.user; if (!userId) return;
             </Box>
           ) : selectedUser && (
             <Grid container spacing={4} sx={{ justifyContent: 'space-around', mt: 0 }}>
-              
-              {/* --- COLUMNA IZQUIERDA: DATOS PERSONALES (Idéntico a UserDetailsDialog) --- */}
+              {/* Columna Izquierda: Información Personal y Contacto */}
               <Grid size={{ xs: 12, md: 4 }} sx={{ borderRight: { md: '1px solid #f0f0f0' } }}>
                 <Typography variant="h6" gutterBottom sx={{ color: colorFont, borderBottom: '2px solid #eee', pb: 1 }}>
                     Información Personal
-                </Typography>
+                  </Typography>
                 <Stack spacing={2} sx={{ mb: 3 }}>
                   <Box>
                     <Typography variant="caption" color="text.secondary" display="block">Nombre Completo</Typography>
                     <Typography variant="body2">{selectedUser.nombre} {selectedUser.apellido}</Typography>
                   </Box>
-                  
+                 
                   {selectedUser.fechaNacimiento && (
                     <Box>
                       <Typography variant="caption" color="text.secondary" display="block">Fecha de Nacimiento</Typography>
                       <Typography variant="body2">{new Date(selectedUser.fechaNacimiento).toLocaleDateString('es-AR')}</Typography>
+                      
                     </Box>
                   )}
                   <Box>
@@ -192,7 +161,7 @@ const userId = application?.user?._id || application?.user; if (!userId) return;
                     <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>{selectedUser.email}</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="text.secondary" display="block" small >Dirección</Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">Dirección</Typography>
                     <Typography variant="body2">
                       {selectedUser.direccion ? (
                         typeof selectedUser.direccion === 'object'
@@ -211,9 +180,9 @@ const userId = application?.user?._id || application?.user; if (!userId) return;
                       )}
                     </Typography>
                   </Box>
-                </Stack>
+                  </Stack>
 
-                <Stack spacing={2} sx={{ mb: 3 }}> 
+                  <Stack spacing={2} sx={{ mb: 3 }}> 
                   <Typography variant="h6" color="primary" gutterBottom sx={{ color: colorFont, borderBottom: '2px solid #eee', pb: 1 }}>
                     Contacto
                   </Typography>  
@@ -224,7 +193,7 @@ const userId = application?.user?._id || application?.user; if (!userId) return;
                       {selectedUser.telefono || <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Sin teléfono registrado</span>}
                     </Typography>
                   </Box>
-                )}
+               )}
                 
                 {selectedUser.linkedin && (
                 <Box>
@@ -238,7 +207,7 @@ const userId = application?.user?._id || application?.user; if (!userId) return;
                   )}
                 </Box>
                 )} 
-                  {/* Resumen Profesional */}
+                  {/* Sección Datos Crudos (Fallback si no hay estructura de CV definida) */}
                 <Box sx={{ mb: 4 }}>
                   <Typography variant="caption" color="text.secondary" display="block">Resumen Profesional</Typography>
                   <Typography variant="body1" sx={{ whiteSpace: 'pre-line', color: 'text.primary' }}>
@@ -248,9 +217,9 @@ const userId = application?.user?._id || application?.user; if (!userId) return;
                 </Stack>
               </Grid>
 
-              {/* --- COLUMNA 2: EXPERIENCIA + EDUCACIÓN --- */}
-              <Grid size={{ xs: 12, md: 4 }} sx={{ borderRight: { md: '1px solid #f0f0f0' } }}>
-                {/* 2. EXPERIENCIA LABORAL (Cargada desde API user) */}
+              {/* Columna Derecha: Perfil Profesional y Experiencia */}
+              <Grid size={{ xs: 12, md: 8 }}>
+                {/* Sección Experiencia Laboral */}
                 <Box sx={{ mb: 4 }}>
                   <Typography variant="h6" color="primary" gutterBottom sx={{ color: colorFont, borderBottom: '2px solid #eee', pb: 1 }}>
                     Experiencia Laboral
@@ -280,7 +249,7 @@ const userId = application?.user?._id || application?.user; if (!userId) return;
                   )}
                 </Box>
 
-                {/* 3. EDUCACIÓN (Cargada desde API user) */}
+                {/* Sección Educación */}
                 <Box sx={{ mb: 4 }}>
                   <Typography variant="h6" color="primary" gutterBottom sx={{ color: colorFont,borderBottom: '2px solid #eee', pb: 1 }}>
                     Educación
@@ -304,55 +273,8 @@ const userId = application?.user?._id || application?.user; if (!userId) return;
                     </Typography>
                   )}
                 </Box>
-              </Grid>
 
-              {/* --- COLUMNA 3: BÚSQUEDA + CV --- */}
-              <Grid size={{ xs: 12, md: 4 }}>
-                     {/* 1. SECCIÓN BÚSQUEDA (Datos inyectados desde application.search) */}
-                {search && (
-                   <Box sx={{ mb: 4 }}>
-                     <Typography variant="h6" color="primary" gutterBottom sx={{ color: colorFont, borderBottom: '2px solid #eee', pb: 1 }}>
-                        Datos de la Búsqueda
-                     </Typography>
-                     <Grid container spacing={2} flexDirection={"Column"}>
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <Box>
-                                <Typography variant="caption" color="text.secondary" display="block">Puesto</Typography>
-                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>{search.titulo || "Sin título"}</Typography>
-                            </Box>
-                        </Grid>
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <Box>
-                                <Typography variant="caption" color="text.secondary" display="block">Estado</Typography>
-                                <Chip label={search.estado || "Activa"} size="small" color={search.estado === 'Activa' ? 'success' : 'default'} sx={{ height: 20, fontSize: '0.75rem' }} />
-                            </Box>
-                        </Grid>
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <Box>
-                                <Typography variant="caption" color="text.secondary" display="block">Área</Typography>
-                                <Typography variant="body2">{search.area || "-"}</Typography>
-                            </Box>
-                        </Grid>
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                            <Box>
-                                <Typography variant="caption" color="text.secondary" display="block">Ubicación</Typography>
-                                <Typography variant="body2">{search.ubicacion || "-"}</Typography>
-                            </Box>
-                        </Grid>
-                        {search.descripcion && (
-                            <Grid size={{ xs: 12 }}>
-                                <Box>
-                                    <Typography variant="caption" color="text.secondary" display="block">Descripción Búsqueda</Typography>
-                                    <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem', mt: 0.5, whiteSpace: 'pre-wrap' }}>
-                                        {search.descripcion}
-                                    </Typography>
-                                </Box>
-                            </Grid>
-                        )}
-                     </Grid>
-                   </Box>
-                )}
-                {/* 4. CV ADJUNTO */}
+                
                 <Box sx={{ mb: 4 }}>
                   <Typography variant="h6" color="primary" gutterBottom sx={{ color: colorFont, borderBottom: '2px solid #eee', pb: 1 }}>
                     CV Adjunto
@@ -370,6 +292,7 @@ const userId = application?.user?._id || application?.user; if (!userId) return;
                     <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>Sin CV cargado</Typography>
                   )}
                 </Box>
+               
 
               </Grid>
             </Grid>

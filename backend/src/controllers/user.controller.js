@@ -1,6 +1,12 @@
 // controllers/user.controller.js
+import crypto from "crypto";
 import User from "../models/User.js";
 import { normalizeDireccion } from "../utils/normalize.js";
+import { sendTempPasswordEmail } from "../services/email.service.js";
+import Cv from "../models/Cv.js";
+import Application from "../models/Application.js";
+import Search from "../models/Search.js";
+import { deleteFileFromOneDrive } from "../services/oneDrive.service.js";
 
 // --- CORRECCIÓN: La ruta ahora es PATCH /users/me ---
 export const editUser = async (req, res, next) => {
@@ -162,6 +168,7 @@ export const listUsersWithCv = async (req, res, next) => {
           estado: 1, // <-- Añadir estado a la proyección
           createdAt: 1,
           updatedAt: 1,
+          providers: 1,
           // dirección básica para "Ubicación" en el front
           direccion: {
             localidad: "$direccion.localidad",
@@ -257,4 +264,102 @@ export const adminSetUserRole = async (req, res, next) => {
     if (!u) return res.status(404).json({ message: "Usuario no encontrado" });
     res.json({ message: `Rol del usuario actualizado a ${rol}`, user: u });
   } catch (e) { next(e); }
+};
+
+/**
+ * 🔑 ADMIN: Restablece la contraseña de un usuario y se la envía por email.
+ * POST /admin/users/:id/reset-password
+ */
+export const adminResetUserPassword = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+    const user = await User.findById(id);
+
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    // Verificar si es usuario de Google (no tienen password)
+    if (user.providers?.google?.id) {
+      return res.status(400).json({ message: "No se puede restablecer la contraseña de un usuario registrado con Google." });
+    }
+
+    // Usar la contraseña provista o generar una aleatoria (12 caracteres hex)
+    const tempPassword = newPassword || crypto.randomBytes(6).toString("hex");
+
+    // Actualizar contraseña (el pre-save hook del modelo se encargará del hash)
+    user.password = tempPassword;
+    await user.save();
+
+    // Enviar email
+    try {
+      await sendTempPasswordEmail(user.email, user.nombre, tempPassword);
+      res.json({ message: "Contraseña restablecida y enviada por correo." });
+    } catch (emailError) {
+      console.error("Error enviando email:", emailError);
+      // Respondemos éxito parcial, indicando que la contraseña cambió pero el email falló
+      res.status(200).json({ 
+        message: "Contraseña restablecida, pero hubo un error al enviar el email.",
+        tempPassword: process.env.NODE_ENV === 'development' ? tempPassword : undefined 
+      });
+    }
+  } catch (e) {
+    next(e);
+  }
+};
+
+/**
+ * 🔑 ADMIN: Actualiza datos básicos de un usuario (nombre, apellido, email, teléfono).
+ * PUT /api/users/:id
+ */
+export const adminUpdateUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { nombre, apellido, email, telefono } = req.body;
+
+    const update = {};
+    if (nombre !== undefined) update.nombre = nombre;
+    if (apellido !== undefined) update.apellido = apellido;
+    if (email !== undefined) update.email = email;
+    if (telefono !== undefined) update.telefono = telefono;
+
+    const u = await User.findByIdAndUpdate(id, update, { new: true, runValidators: true });
+    if (!u) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    res.json({ message: "Usuario actualizado", user: u });
+  } catch (e) {
+    next(e);
+  }
+};
+
+// DELETE /users/:id
+export const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    // 1. Eliminar CV y archivo asociado en OneDrive
+    const cv = await Cv.findOne({ user: id });
+    if (cv) {
+      if (cv.cvFile?.providerId) {
+        // Intentamos borrar el archivo, si falla logueamos pero continuamos
+        try { await deleteFileFromOneDrive(cv.cvFile.providerId); } catch (e) { console.error(e); }
+      }
+      await Cv.deleteOne({ _id: cv._id });
+    }
+
+    // 2. Eliminar postulaciones y búsquedas asociadas
+    await Application.deleteMany({ user: id });
+    await Search.deleteMany({ createdBy: id });
+
+    // 3. Eliminar el usuario
+    await User.deleteOne({ _id: id });
+
+    res.json({ message: "Usuario y datos asociados eliminados." });
+  } catch (e) {
+    next(e);
+  }
 };

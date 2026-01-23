@@ -1,11 +1,15 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import upload from "../middleware/upload.middleware.js";
+import { requireRole } from "../middleware/role.middleware.js";
+
 // Importa solo los controladores necesarios para las rutas de usuario
 import {
-  getMyCV,
+ getMyCV,
   upsertMyCV,
-  downloadMyCv
+  downloadMyCv,
+  listAllCVs,
+  downloadCvByUserId
 } from "../controllers/cv.controller.js";
 
 const router = Router();
@@ -23,15 +27,11 @@ router.get("/me/download", requireAuth, downloadMyCv);
 
 
 // --- Rutas de Admin (Se moverán a adminRoutes.js después) ---
-/*
-import { requireRole } from "../middleware/role.middleware.js";
-import { listAllCVs, downloadCvByUserId } from "../controllers/cv.controller.js";
 
 // GET /api/admin/cvs - Listar todos los CVs
 router.get("/", requireAuth, requireRole("admin"), listAllCVs);
 
 // GET /api/admin/users/:userId/cv/download - Descargar el CV de un usuario específico
 router.get("/admin/users/:userId/cv/download", requireAuth, requireRole("admin"), downloadCvByUserId);
-*/
 
 export default router;
