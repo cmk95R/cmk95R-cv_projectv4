@@ -61,7 +61,7 @@ const competenciasSociales = [
 const nivelesAcademicos = [
   "Secundario completo", "Secundario incompleto", "Terciario/Técnico en curso",
   "Terciario/Técnico completo", "Universitario en curso", "Universitario completo",
-  "Posgrado en curso", "Posgrado completo",
+  "Posgrado en curso", "Posgrado completo", "Curso/Bootcamp"
 ];
 
 const nivelesIngles = ["Sin conocimientos", "Nivel básico", "Nivel intermedio", "Nivel avanzado"];

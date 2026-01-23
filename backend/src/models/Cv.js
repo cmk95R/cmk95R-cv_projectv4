@@ -5,7 +5,7 @@ const OPCIONES_AREA = ["Administracion", "Recursos Humanos", "Sistemas", "Pasant
 const NIVELES = [
   "Secundario completo", "Secundario incompleto", "Terciario/Técnico en curso",
   "Terciario/Técnico completo", "Universitario en curso", "Universitario completo",
-  "Posgrado en curso", "Posgrado completo",
+  "Posgrado en curso", "Posgrado completo", "Curso/Bootcamp"
 ];
 
 // Convierte "" o null a undefined → no dispara enum si no es required
