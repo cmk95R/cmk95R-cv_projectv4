@@ -62,16 +62,16 @@ export default function PublicSearchesCarousel() {
     );
   }
 
-  // Lógica: Solo activamos el loop infinito si hay más elementos (4) 
-  // que los que mostramos en la pantalla más grande (4).
-  const isLoopEnabled = rows.length > 4;
+  // Lógica: Solo activamos el loop infinito si hay más elementos (3)
+  // que los que mostramos en la pantalla más grande (3).
+  const isLoopEnabled = rows.length > 3;
 
   return (
     <Box 
       sx={{ 
         py: 2, 
         width: "100%",
-        
+        overflow: "visible", // Para que las flechas de navegación no se corten
         // --- ESTILOS RESPONSIVE DEL SWIPER ---
         // Usamos CSS dentro de SX para controlar el padding del contenedor Swiper
         "& .swiper": {
@@ -85,19 +85,16 @@ export default function PublicSearchesCarousel() {
 
         // --- BOTONES DE NAVEGACIÓN RESPONSIVE ---
         "& .swiper-button-prev": {
-            display: { xs: 'none', lg: 'flex' }, // Oculto por defecto, visible en 'lg' (1200px+)
+            display: { xs: 'none', lg: 'flex' },
             color: "#1976d2",
-            // En móvil (xs) pegado al borde, en escritorio (md) desplazado -10px
-            left: { lg: "-5px" }, 
-            // Hacemos los botones un poco más chicos en móvil para no estorbar
+            left: { lg: "0" }, // Dentro del padding del Container para que no se corten
             transform: { lg: "scale(1)" },
             fontWeight: "bold",
         },
         "& .swiper-button-next": {
-            display: { xs: 'none', lg: 'flex' }, // Oculto por defecto, visible en 'lg' (1200px+)
+            display: { xs: 'none', lg: 'flex' },
             color: "#1976d2",
-            // En móvil pegado al borde, en escritorio desplazado 5px
-            right: { lg: "-5px" },
+            right: { lg: "0" }, // Dentro del padding del Container para que no se corten
             transform: { lg: "scale(1)" },
             fontWeight: "bold",
         },
@@ -129,10 +126,8 @@ export default function PublicSearchesCarousel() {
         breakpoints={{
           // Móvil grande / Tablet pequeña
           600: { slidesPerView: 2 },
-          // Tablet horizontal / Laptop pequeña
+          // Tablet horizontal / Desktop: máximo 3 búsquedas visibles
           900: { slidesPerView: 3 },
-          // Desktop estándar
-          1200: { slidesPerView: 4 },
         }}
         // NOTA: Quitamos el 'style' con padding fijo de aquí y lo pasamos al 'sx' del Box padre
         // para tener control responsive total.
@@ -144,22 +139,21 @@ export default function PublicSearchesCarousel() {
                 borderRadius: 3,
                 boxShadow: 3,
                 height: 220,
-                width: "100%", 
-                maxWidth: 280, // Límite para que no se vean gigantes
+                width: "100%",
+                maxWidth: 380, // Más anchas: 3 por fila con nombre completo visible
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
                 p: 2,
-                // Pequeño margen automático para asegurar centrado en layouts flexibles
                 mx: "auto"
               }}
             >
               <Stack direction="row" alignItems="center" spacing={2}>
-                <Box sx={{ width: '100%' }}>
+                <Box sx={{ width: '100%', minWidth: 0, overflow: 'visible' }}>
                   <Typography variant="caption" color="primary">
                     {item.area}
                   </Typography>
-                  <Typography fontWeight="bold" variant="subtitle1" color="text.primary" noWrap>
+                  <Typography fontWeight="bold" variant="subtitle1" color="text.primary" sx={{ wordBreak: 'break-word', overflow: 'visible' }}>
                     {item.titulo}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" noWrap>

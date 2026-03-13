@@ -226,28 +226,10 @@ const Home = () => {
         </Container>
       </motion.section>
 
-      {/* ===== CARROUSEL DE PUBLICACIONES ===== */}
-      
-      <Box sx={{ display: { md: 'block' }, width: '100%', overflow: 'hidden' }}>
-  
-  <motion.section 
-    variants={sectionVariants} 
-    initial="hidden" 
-    whileInView="visible" 
-    viewport={{ once: true, amount: 0.2 }}
-    style={{ width: '100%' }}
-  >
-    <Container maxWidth="lg" sx={{ mb: 2 }}>
-      <PublicSearchesCarousel />
-    </Container>
-  </motion.section>
-
-</Box>
-      
 
 
-      {/* ===== OPORTUNIDADES POR ÁREA ===== */}
-      <motion.section
+  {/* ===== OPORTUNIDADES POR ÁREA ===== */}
+  <motion.section
         variants={sectionVariants}
         initial="hidden"
         whileInView="visible"
@@ -310,6 +292,27 @@ const Home = () => {
         </Container>
       </motion.section>
 
+      {/* ===== CARROUSEL DE PUBLICACIONES ===== */}
+      
+      <Box sx={{ display: { md: 'block' }, width: '100%', overflow: 'visible' }}>
+  
+  <motion.section 
+    variants={sectionVariants} 
+    initial="hidden" 
+    whileInView="visible" 
+    viewport={{ once: true, amount: 0.2 }}
+    style={{ width: '100%' }}
+  >
+    <Container maxWidth="lg" sx={{ mb: 2, px: { xs: 2, lg: 7 } }}>
+      <PublicSearchesCarousel />
+    </Container>
+  </motion.section>
+
+      </Box>
+      
+
+
+    
 
 
 
